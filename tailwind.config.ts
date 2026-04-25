@@ -30,7 +30,10 @@ const config: Config = {
           ring: "rgb(var(--accent-ring) / <alpha-value>)",
           fg: "rgb(var(--accent-fg) / <alpha-value>)"
         },
-        ember: "rgb(var(--ember) / <alpha-value>)",
+        ember: {
+          DEFAULT: "rgb(var(--ember) / <alpha-value>)",
+          soft: "rgb(var(--ember-soft, var(--ember)) / <alpha-value>)"
+        },
         danger: "rgb(var(--danger) / <alpha-value>)",
         // Legacy aliases used by older components
         abyss: "#050915",

@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Bot, BookOpen, Feather, MessageCircle, MoreHorizontal, Plus, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
 import { StoryCard } from "@/components/story-card";
-import { demoStories } from "@/lib/demo-data";
+import { useStories } from "@/lib/stories-store";
+import type { Story } from "@/lib/types";
 
 const heroFeatures = [
   { icon: BookOpen, title: "Создавай миры", subtitle: "и персонажей" },
@@ -39,6 +42,9 @@ const chatPreview = [
 ];
 
 export default function AppHomePage() {
+  const { stories } = useStories();
+  const continueStories = stories.slice(0, 4);
+
   return (
     <PageContainer size="wide" className="pb-12">
       <section className="relative overflow-hidden rounded-[28px] border border-line/15 shadow-soft">
@@ -71,7 +77,7 @@ export default function AppHomePage() {
             <ul className="mt-10 grid grid-cols-3 gap-4 max-w-lg sm:gap-6">
               {heroFeatures.map(({ icon: Icon, title, subtitle }) => (
                 <li key={title} className="reveal-up reveal-delay-1 flex flex-col items-start gap-2">
-                  <span className="icon-breathe inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-accent/30 bg-accent/15 text-accent-ring">
+                  <span className="icon-breathe inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/25 via-fuchsia-500/15 to-ember/15 text-accent-ring shadow-glow">
                     <Icon size={18} />
                   </span>
                   <p className="text-xs leading-5 text-muted sm:text-sm">
@@ -83,13 +89,18 @@ export default function AppHomePage() {
             </ul>
           </div>
 
-          <ChatPreviewCard />
+          <ChatPreviewCard story={stories[0]} />
         </div>
       </section>
 
       <section className="mt-10 md:mt-12">
         <div className="mb-6 flex items-end justify-between gap-4">
-          <h2 className="font-serif text-2xl font-semibold md:text-3xl">Продолжить игру</h2>
+          <h2 className="font-serif text-2xl font-semibold md:text-3xl">
+            Продолжить{" "}
+            <span className="bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-transparent">
+              игру
+            </span>
+          </h2>
           <Link
             href="/app/stories"
             className="inline-flex items-center gap-2 text-sm text-accent-ring transition hover:text-fg"
@@ -98,8 +109,8 @@ export default function AppHomePage() {
           </Link>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {demoStories.map((story, index) => (
-            <StoryCard key={story.id} story={story} offset={index} />
+          {continueStories.map((story, index) => (
+            <StoryCard key={story.id} story={story} offset={index} variant="compact" />
           ))}
         </div>
       </section>
@@ -107,14 +118,14 @@ export default function AppHomePage() {
   );
 }
 
-function ChatPreviewCard() {
-  const story = demoStories[0];
+function ChatPreviewCard({ story }: { story: Story | undefined }) {
+  if (!story) return null;
 
   return (
     <aside className="reveal-up reveal-delay-1 glass relative flex flex-col rounded-3xl border border-line/15 p-5 shadow-2xl">
       <header className="flex items-start justify-between gap-3 border-b border-line/10 pb-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-accent/30 bg-accent/15 text-accent-ring">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/25 via-fuchsia-500/15 to-ember/15 text-accent-ring shadow-glow">
             <Feather size={18} />
           </span>
           <div>
@@ -156,9 +167,15 @@ function ChatPreviewCard() {
             );
           }
           if (message.kind === "character") {
+            const palette =
+              message.author === "Лира"
+                ? "from-accent via-fuchsia-500 to-pink-400"
+                : "from-ember via-amber-400 to-yellow-300";
             return (
               <div key={index} className="flex gap-3">
-                <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-fuchsia-500 text-xs font-semibold text-white">
+                <span
+                  className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${palette} text-xs font-semibold text-white shadow-glow`}
+                >
                   {message.initials}
                 </span>
                 <div className="flex-1">
@@ -171,7 +188,7 @@ function ChatPreviewCard() {
           }
           return (
             <div key={index} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-accent/85 px-4 py-2 text-sm text-white shadow-lg">
+              <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-gradient-to-br from-accent via-fuchsia-500 to-ember/85 px-4 py-2 text-sm text-white shadow-glow">
                 <p>{message.text}</p>
                 <p className="mt-1 text-right text-[11px] uppercase tracking-[0.18em] text-white/70">{message.time}</p>
               </div>
@@ -182,7 +199,7 @@ function ChatPreviewCard() {
 
       <form
         action={`/app/story/${story.id}`}
-        className="mt-5 flex items-center gap-2 rounded-2xl border border-line/15 bg-surface-2/60 px-4 py-2"
+        className="mt-5 flex items-center gap-2 rounded-2xl border border-line/15 bg-surface-2/60 px-4 py-2 transition focus-within:border-accent focus-within:shadow-glow"
       >
         <input
           type="text"
@@ -197,7 +214,7 @@ function ChatPreviewCard() {
         <Link
           href={`/app/story/${story.id}`}
           aria-label="Открыть историю"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-glow transition hover:bg-accent-hover"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent via-fuchsia-500 to-ember text-white shadow-glow transition hover:opacity-95"
         >
           <Send size={14} />
         </Link>

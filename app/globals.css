@@ -30,6 +30,7 @@
   --accent-fg: 255 255 255;
 
   --ember: 245 158 11;
+  --ember-soft: 252 211 152;
   --danger: 239 68 68;
 
   --line-alpha: 0.11;
@@ -59,6 +60,7 @@
   --accent-fg: 255 255 255;
 
   --ember: 217 119 6;
+  --ember-soft: 198 84 0;
   --danger: 220 38 38;
 
   --line-alpha: 0.13;

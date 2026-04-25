@@ -8,7 +8,7 @@ export default function CharactersPage() {
     <PageContainer>
       <header className="reveal-up mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.18em] text-accent-ring/90">Персонажи</p>
+          <p className="inline-block bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-sm font-semibold uppercase tracking-[0.18em] text-transparent">Персонажи</p>
           <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">Досье героев истории</h1>
           <p className="mt-4 max-w-2xl text-muted">
             Персонажи создаются внутри конкретной истории и не переносятся в другие сюжеты без отдельного выбора автора.

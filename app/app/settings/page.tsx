@@ -40,7 +40,7 @@ export default function SettingsPage() {
   return (
     <PageContainer size="narrow">
       <header className="reveal-up mb-8">
-        <p className="text-sm uppercase tracking-[0.18em] text-accent-ring/90">Настройки</p>
+        <p className="inline-block bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-sm font-semibold uppercase tracking-[0.18em] text-transparent">Настройки</p>
         <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">Профиль автора</h1>
         <p className="mt-4 max-w-2xl text-muted">
           Имя, тон AI-режиссёра, рейтинг историй и тема приложения. Всё привязано к demo-аккаунту, пока не подключён Supabase.

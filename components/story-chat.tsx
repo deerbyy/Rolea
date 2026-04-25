@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
+  Feather,
   Globe2,
   Loader2,
   RefreshCcw,
@@ -10,8 +11,9 @@ import {
   Sparkles,
   Users
 } from "lucide-react";
-import { demoCharacters, demoStories, initialMessages } from "@/lib/demo-data";
+import { demoCharacters, initialMessages } from "@/lib/demo-data";
 import type { ChatMessage } from "@/lib/types";
+import { useStories } from "@/lib/stories-store";
 import { cn } from "@/lib/cn";
 
 const fallbackSuggestions = [
@@ -20,6 +22,12 @@ const fallbackSuggestions = [
   "Войти первым"
 ];
 
+const characterPalette: Record<string, string> = {
+  Лира: "from-accent via-fuchsia-500 to-pink-400",
+  Кайр: "from-ember via-amber-400 to-yellow-300",
+  Rolea: "from-accent via-fuchsia-500 to-ember"
+};
+
 function nowLabel() {
   return new Date().toLocaleTimeString("ru-RU", {
     hour: "2-digit",
@@ -27,18 +35,24 @@ function nowLabel() {
   });
 }
 
+function initialOf(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "·";
+  return trimmed[0].toLocaleUpperCase("ru");
+}
+
 export function StoryChat({ storyId }: { storyId: string }) {
-  const story = useMemo(
-    () => demoStories.find((item) => item.id === storyId) ?? demoStories[0],
-    [storyId]
-  );
+  const { getStory, stories, updateStory } = useStories();
+  const story = useMemo(() => getStory(storyId) ?? stories[0], [getStory, storyId, stories]);
+
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [published, setPublished] = useState(story.status === "published");
   const [suggestions, setSuggestions] = useState<string[]>(fallbackSuggestions);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const published = story?.status === "published";
 
   useEffect(() => {
     const node = messagesRef.current;
@@ -70,7 +84,6 @@ export function StoryChat({ storyId }: { storyId: string }) {
     let working: ChatMessage[];
 
     if (replaceLastReply) {
-      // remove trailing AI messages back to the most recent user message
       working = [...messages];
       while (working.length > 0 && working[working.length - 1].kind !== "user") {
         working.pop();
@@ -163,25 +176,41 @@ export function StoryChat({ storyId }: { storyId: string }) {
   }, [messages]);
 
   async function publish() {
-    setPublished((current) => !current);
+    if (!story) return;
+    const next = story.status === "published" ? "active" : "published";
+    updateStory(story.id, { status: next });
     await fetch("/api/stories/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storyId: story.id, publish: !published })
-    });
+      body: JSON.stringify({ storyId: story.id, publish: next === "published" })
+    }).catch(() => undefined);
+  }
+
+  if (!story) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center text-muted">
+        <p className="font-serif text-3xl">История не найдена</p>
+        <p className="mt-2 text-sm">Возможно, она была удалена. Открой библиотеку историй.</p>
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto grid max-w-7xl gap-5 px-4 py-8 md:px-8 xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="glass reveal-up flex h-[calc(100vh-132px)] min-h-[620px] flex-col overflow-hidden rounded-3xl">
-        <header className="shrink-0 border-b border-line/15 p-5">
+        <header className="shrink-0 border-b border-line/15 bg-surface/40 p-5 backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-sm text-accent-ring/90">{story.genre}</p>
-              <h1 className="mt-1 font-serif text-3xl font-semibold md:text-4xl">{story.title}</h1>
-              <p className="mt-2 text-sm text-muted">
-                Глава {story.chapter}. {story.mood}
-              </p>
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 place-items-center rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/30 via-fuchsia-500/20 to-ember/20 text-accent-ring">
+                <Feather size={18} />
+              </span>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-accent-ring/85">{story.genre}</p>
+                <h1 className="mt-1 font-serif text-2xl font-semibold md:text-3xl">{story.title}</h1>
+                <p className="mt-1 text-xs text-muted">
+                  Глава {story.chapter} · {story.mood}
+                </p>
+              </div>
             </div>
             <button
               type="button"
@@ -189,7 +218,7 @@ export function StoryChat({ storyId }: { storyId: string }) {
               className={cn(
                 "interactive-glow rounded-2xl px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5",
                 published
-                  ? "border border-accent/30 bg-accent/22 text-accent-ring"
+                  ? "border border-ember/40 bg-gradient-to-r from-accent/25 via-fuchsia-500/20 to-ember/30 text-ember-soft shadow-glow"
                   : "border border-line/15 bg-surface-2/40 text-muted hover:text-fg"
               )}
             >
@@ -255,11 +284,14 @@ export function StoryChat({ storyId }: { storyId: string }) {
               className="min-h-11 max-h-[200px] flex-1 resize-none bg-transparent text-sm leading-6 text-fg outline-none"
               placeholder="Ваше действие или реплика…"
             />
+            <span className="hidden text-accent-ring sm:inline">
+              <Sparkles size={16} />
+            </span>
             <button
               type="button"
               onClick={() => send(input)}
               disabled={loading || !input.trim()}
-              className="interactive-glow grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg transition hover:-translate-y-0.5 hover:bg-accent-hover disabled:opacity-60"
+              className="interactive-glow grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-accent via-fuchsia-500 to-ember text-accent-fg shadow-glow transition hover:-translate-y-0.5 disabled:opacity-60"
               aria-label="Отправить действие"
             >
               <Send size={18} />
@@ -281,10 +313,20 @@ export function StoryChat({ storyId }: { storyId: string }) {
             {demoCharacters.map((character) => (
               <div
                 key={character.id}
-                className="hover-lift rounded-2xl border border-line/15 bg-surface-2/40 p-3"
+                className="hover-lift flex items-center gap-3 rounded-2xl border border-line/15 bg-surface-2/40 p-3"
               >
-                <p className="font-semibold">{character.name}</p>
-                <p className="text-xs text-accent-ring/90">{character.role}</p>
+                <span
+                  className={cn(
+                    "grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-glow",
+                    characterPalette[character.name] ?? "from-accent via-fuchsia-500 to-ember"
+                  )}
+                >
+                  {initialOf(character.name)}
+                </span>
+                <div className="min-w-0">
+                  <p className="font-semibold">{character.name}</p>
+                  <p className="truncate text-xs text-accent-ring/90">{character.role}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -312,27 +354,71 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   const isNarration = message.kind === "narration";
   const isSystem = message.kind === "system";
 
-  const wrapperClass = cn(
-    "max-w-2xl rounded-2xl p-4 text-sm leading-6",
-    isUser
-      ? "bg-accent text-accent-fg"
-      : isNarration
-        ? "border border-line/15 bg-surface-2/40 italic text-muted"
-        : isSystem
-          ? "border border-accent/30 bg-accent/12 text-accent-ring"
-          : "border border-line/15 bg-surface-2/65 text-fg"
-  );
-
-  return (
-    <article className={cn("message-enter flex", isUser ? "justify-end" : "justify-start")}>
-      <div className={wrapperClass}>
-        <div className="mb-2 flex items-center gap-2 text-xs opacity-80">
-          {isNarration && <Sparkles size={14} />}
-          <span>{message.author}</span>
-          <span>·</span>
-          <span>{message.timestamp}</span>
+  if (isUser) {
+    return (
+      <article className="message-enter flex justify-end">
+        <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-gradient-to-br from-accent via-fuchsia-500 to-ember/85 px-4 py-3 text-sm leading-6 text-white shadow-glow">
+          <p>{message.content}</p>
+          <p className="mt-1 text-right text-[11px] uppercase tracking-[0.18em] text-white/70">
+            {message.timestamp}
+          </p>
         </div>
-        {message.content}
+      </article>
+    );
+  }
+
+  if (isNarration) {
+    return (
+      <article className="message-enter flex gap-3">
+        <span className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-line/15 bg-surface-2/60 text-accent-ring">
+          <Feather size={14} />
+        </span>
+        <div className="flex-1 text-sm leading-6 text-muted">
+          <p className="italic">{message.content}</p>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">
+            {message.timestamp}
+          </p>
+        </div>
+      </article>
+    );
+  }
+
+  if (isSystem) {
+    return (
+      <article className="message-enter flex">
+        <div className="rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-accent-ring">
+          <div className="mb-1 flex items-center gap-2 text-xs opacity-80">
+            <Sparkles size={12} />
+            <span>{message.author}</span>
+            <span>·</span>
+            <span>{message.timestamp}</span>
+          </div>
+          {message.content}
+        </div>
+      </article>
+    );
+  }
+
+  // character
+  const palette = characterPalette[message.author] ?? "from-accent via-fuchsia-500 to-ember";
+  return (
+    <article className="message-enter flex gap-3">
+      <span
+        className={cn(
+          "mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-glow",
+          palette
+        )}
+      >
+        {initialOf(message.author)}
+      </span>
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-accent-ring">{message.author}</p>
+        <div className="mt-1 inline-block max-w-full rounded-2xl rounded-tl-md border border-line/15 bg-surface-2/65 px-4 py-3 text-sm leading-6 text-fg">
+          {message.content}
+        </div>
+        <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">
+          {message.timestamp}
+        </p>
       </div>
     </article>
   );

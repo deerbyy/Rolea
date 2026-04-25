@@ -8,7 +8,7 @@ export default function WorldsPage() {
     <PageContainer>
       <header className="reveal-up mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.18em] text-accent-ring/90">Миры и локации</p>
+          <p className="inline-block bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-sm font-semibold uppercase tracking-[0.18em] text-transparent">Миры и локации</p>
           <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">Лор конкретной истории</h1>
           <p className="mt-4 max-w-2xl text-muted">
             Мир, правила и локации создаются под отдельную историю. Они не смешиваются с другими сюжетами пользователя.

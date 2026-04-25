@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
@@ -24,10 +24,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import {
   demoCharacters,
   demoNotifications,
-  demoStories,
   demoTemplates,
   demoWorlds
 } from "@/lib/demo-data";
+import { useStories } from "@/lib/stories-store";
+import { fuzzySearch, type Highlighted } from "@/lib/search";
+import { Highlight } from "@/components/highlight";
 import { cn } from "@/lib/cn";
 
 const navItems = [
@@ -103,9 +105,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex shrink-0 items-center justify-between">
             <Link
               href="/app"
-              className="reveal-up font-serif text-4xl font-semibold text-accent-ring"
+              className="reveal-up font-serif text-4xl font-semibold tracking-tight"
             >
-              Rolea
+              <span className="bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-transparent">
+                Rolea
+              </span>
             </Link>
             <button
               type="button"
@@ -130,12 +134,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={cn(
                     "nav-hover group relative flex items-center gap-4 rounded-xl px-4 py-3 text-sm transition active:scale-[0.97]",
                     active
-                      ? "border border-accent/30 bg-accent/24 text-fg shadow-glow"
+                      ? "border border-accent/30 bg-gradient-to-r from-accent/30 via-fuchsia-500/18 to-ember/14 text-fg shadow-glow"
                       : "border border-transparent text-muted hover:bg-surface-2/60 hover:text-fg"
                   )}
                 >
                   {active && (
-                    <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-accent-ring shadow-[0_0_18px_rgba(196,181,253,0.8)]" />
+                    <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-accent-ring via-fuchsia-400 to-ember shadow-[0_0_18px_rgba(196,181,253,0.8)]" />
                   )}
                   <Icon className={active ? "icon-breathe" : ""} size={20} />
                   <span>{item.label}</span>
@@ -234,58 +238,140 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+type CommandItem = {
+  href: string;
+  title: string;
+  meta: string;
+  icon: typeof Home;
+  category: "Разделы" | "Истории" | "Персонажи" | "Миры" | "Шаблоны" | "Действия";
+};
+
 function CommandPalette({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const router = useRouter();
+  const { stories } = useStories();
+  const listRef = useRef<HTMLDivElement | null>(null);
 
-  const results = useMemo(() => {
-    const base = [
-      ...navItems.map((item) => ({
+  const base: CommandItem[] = useMemo(
+    () => [
+      ...navItems.map<CommandItem>((item) => ({
         href: item.href,
         title: item.label,
         meta: "Раздел приложения",
-        icon: item.icon
+        icon: item.icon,
+        category: "Разделы"
       })),
-      ...demoStories.map((story) => ({
+      ...stories.map<CommandItem>((story) => ({
         href: `/app/story/${story.id}`,
         title: story.title,
-        meta: `История · ${story.genre}`,
-        icon: BookOpen
+        meta: `${story.genre} · глава ${story.chapter}`,
+        icon: BookOpen,
+        category: "Истории"
       })),
-      ...demoCharacters.map((character) => ({
+      ...demoCharacters.map<CommandItem>((character) => ({
         href: "/app/characters",
         title: character.name,
-        meta: `Персонаж · ${character.role}`,
-        icon: Users
+        meta: character.role,
+        icon: Users,
+        category: "Персонажи"
       })),
-      ...demoWorlds.map((world) => ({
+      ...demoWorlds.map<CommandItem>((world) => ({
         href: "/app/worlds",
         title: world.name,
-        meta: `Мир · ${world.storyTitle}`,
-        icon: Compass
+        meta: world.storyTitle,
+        icon: Compass,
+        category: "Миры"
       })),
-      ...demoTemplates.map((template) => ({
+      ...demoTemplates.map<CommandItem>((template) => ({
         href: "/app/templates",
         title: template.title,
-        meta: `Шаблон · ${template.format}`,
-        icon: Boxes
+        meta: `${template.format} · ${template.genre}`,
+        icon: Boxes,
+        category: "Шаблоны"
       })),
       {
         href: "/app/billing",
         title: "Улучшить подписку",
-        meta: "Быстрое действие",
-        icon: CreditCard
+        meta: "Открыть тарифы Rolea",
+        icon: CreditCard,
+        category: "Действия"
+      },
+      {
+        href: "/app/onboarding",
+        title: "Создать новую историю",
+        meta: "Запустить мастер сцены",
+        icon: Plus,
+        category: "Действия"
       }
-    ];
+    ],
+    [stories]
+  );
 
-    const normalized = query.toLowerCase().trim();
-    if (!normalized) {
-      return base.slice(0, 9);
+  type Scored = { item: CommandItem; highlights: Record<string, Highlighted> };
+
+  const results: Scored[] = useMemo(() => {
+    if (!query.trim()) {
+      return base.slice(0, 12).map((item) => ({ item, highlights: {} }));
     }
 
-    return base
-      .filter((item) => `${item.title} ${item.meta}`.toLowerCase().includes(normalized))
-      .slice(0, 10);
+    return fuzzySearch(
+      base,
+      query,
+      (item) => ({ title: item.title, meta: item.meta, category: item.category }),
+      { weights: { title: 4, meta: 1.5, category: 1 }, limit: 14 }
+    ).map(({ item, highlights }) => ({ item, highlights }));
+  }, [base, query]);
+
+  useEffect(() => {
+    setActiveIndex(0);
   }, [query]);
+
+  useEffect(() => {
+    const node = listRef.current?.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`);
+    node?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  function go(item: CommandItem) {
+    onClose();
+    router.push(item.href);
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      onClose();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((index) => Math.min(index + 1, results.length - 1));
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((index) => Math.max(index - 1, 0));
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const result = results[activeIndex];
+      if (result) {
+        go(result.item);
+      }
+    }
+  }
+
+  // Group consecutive results by category for nicer reading.
+  const grouped: Array<{ category: string; entries: Array<{ result: Scored; index: number }> }> =
+    [];
+  results.forEach((result, index) => {
+    const last = grouped[grouped.length - 1];
+    if (last && last.category === result.item.category) {
+      last.entries.push({ result, index });
+    } else {
+      grouped.push({ category: result.item.category, entries: [{ result, index }] });
+    }
+  });
 
   return (
     <div className="fixed inset-0 z-50 bg-black/58 px-4 py-20 backdrop-blur-sm" onClick={onClose}>
@@ -293,39 +379,77 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
         className="message-enter mx-auto max-w-2xl rounded-3xl border border-line/15 bg-surface p-4 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <label className="flex items-center gap-3 rounded-2xl border border-accent/30 bg-surface-2/40 px-4 py-4 text-muted">
-          <Search size={20} />
+        <label className="flex items-center gap-3 rounded-2xl border border-accent/30 bg-surface-2/40 px-4 py-4 text-muted focus-within:shadow-glow">
+          <Search size={20} className="text-accent-ring" />
           <input
             autoFocus
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") onClose();
-            }}
+            onKeyDown={onKeyDown}
             className="w-full bg-transparent text-base text-fg outline-none placeholder:text-subtle"
             placeholder="Найти историю, персонажа, мир, настройку…"
           />
+          <span className="hidden items-center gap-1 text-[10px] uppercase tracking-[0.16em] text-subtle md:inline-flex">
+            ↑↓ <span className="opacity-50">·</span> Enter
+          </span>
         </label>
-        <div className="mt-3 max-h-[420px] space-y-2 overflow-auto scrollbar-thin">
-          {results.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={`${item.href}-${item.title}`}
-                href={item.href}
-                onClick={onClose}
-                className="nav-hover flex items-center gap-4 rounded-2xl border border-transparent p-4 text-left transition active:scale-[0.98] hover:border-accent/25 hover:bg-surface-2/40"
-              >
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/18 text-accent-ring">
-                  <Icon size={18} />
-                </span>
-                <span>
-                  <span className="block font-semibold">{item.title}</span>
-                  <span className="text-sm text-muted">{item.meta}</span>
-                </span>
-              </Link>
-            );
-          })}
+
+        <div ref={listRef} className="mt-3 max-h-[440px] space-y-1 overflow-auto scrollbar-thin">
+          {grouped.length === 0 && (
+            <div className="px-2 py-10 text-center text-sm text-muted">
+              Ничего не нашлось. Попробуй сформулировать иначе.
+            </div>
+          )}
+          {grouped.map((group) => (
+            <div key={group.category} className="pt-2 first:pt-0">
+              <p className="px-3 pb-1 text-[11px] uppercase tracking-[0.18em] text-subtle">
+                {group.category}
+              </p>
+              {group.entries.map(({ result, index }) => {
+                const Icon = result.item.icon;
+                const active = index === activeIndex;
+                return (
+                  <button
+                    key={`${result.item.href}-${result.item.title}`}
+                    type="button"
+                    data-index={index}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onClick={() => go(result.item)}
+                    className={cn(
+                      "flex w-full items-center gap-4 rounded-2xl border p-3 text-left transition active:scale-[0.98]",
+                      active
+                        ? "border-accent/40 bg-gradient-to-r from-accent/22 via-fuchsia-500/14 to-ember/12 text-fg shadow-glow"
+                        : "border-transparent text-muted hover:border-line/15 hover:bg-surface-2/40 hover:text-fg"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
+                        active
+                          ? "bg-gradient-to-br from-accent/40 via-fuchsia-500/30 to-ember/30 text-white shadow-glow"
+                          : "bg-accent/18 text-accent-ring"
+                      )}
+                    >
+                      <Icon size={16} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-fg">
+                        <Highlight parts={result.highlights.title} fallback={result.item.title} />
+                      </span>
+                      <span className="block truncate text-xs text-muted">
+                        <Highlight parts={result.highlights.meta} fallback={result.item.meta} />
+                      </span>
+                    </span>
+                    {active && (
+                      <span className="hidden text-[10px] uppercase tracking-[0.18em] text-accent-ring md:inline">
+                        Enter
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
     </div>
