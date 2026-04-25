@@ -38,7 +38,7 @@ export default function BillingPage() {
   return (
     <PageContainer>
       <header className="reveal-up mb-8">
-        <p className="inline-block bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-sm font-semibold uppercase tracking-[0.18em] text-transparent">Подписка</p>
+        <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-gradient-to-r from-accent/15 via-fuchsia-500/12 to-ember/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-fg"><span className="h-1.5 w-1.5 rounded-full bg-gradient-to-br from-accent to-ember" />Подписка</span>
         <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">Тарифы Rolea</h1>
         <p className="mt-4 max-w-2xl text-muted">
           Stripe уже заложен в архитектуру, а кнопки оплаты сейчас показывают понятное Soon-состояние.

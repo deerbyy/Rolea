@@ -95,12 +95,7 @@ export default function AppHomePage() {
 
       <section className="mt-10 md:mt-12">
         <div className="mb-6 flex items-end justify-between gap-4">
-          <h2 className="font-serif text-2xl font-semibold md:text-3xl">
-            Продолжить{" "}
-            <span className="bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-transparent">
-              игру
-            </span>
-          </h2>
+          <h2 className="font-serif text-2xl font-semibold md:text-3xl">Продолжить игру</h2>
           <Link
             href="/app/stories"
             className="inline-flex items-center gap-2 text-sm text-accent-ring transition hover:text-fg"
@@ -188,9 +183,10 @@ function ChatPreviewCard({ story }: { story: Story | undefined }) {
           }
           return (
             <div key={index} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-gradient-to-br from-accent via-fuchsia-500 to-ember/85 px-4 py-2 text-sm text-white shadow-glow">
+              <div className="relative max-w-[85%] rounded-2xl rounded-tr-md border border-accent/30 bg-accent-hover/95 px-4 py-2 text-sm text-white shadow-glow">
+                <span className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-ember/60 to-transparent" />
                 <p>{message.text}</p>
-                <p className="mt-1 text-right text-[11px] uppercase tracking-[0.18em] text-white/70">{message.time}</p>
+                <p className="mt-1 text-right text-[11px] uppercase tracking-[0.18em] text-white/75">{message.time}</p>
               </div>
             </div>
           );

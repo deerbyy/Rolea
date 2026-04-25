@@ -105,9 +105,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex shrink-0 items-center justify-between">
             <Link
               href="/app"
-              className="reveal-up font-serif text-4xl font-semibold tracking-tight"
+              className="reveal-up group flex items-center gap-3"
+              aria-label="Rolea"
             >
-              <span className="bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-transparent">
+              <span className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-glow ring-1 ring-line/15 transition group-hover:scale-[1.03]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/icon.svg" alt="" className="h-full w-full" />
+              </span>
+              <span className="font-serif text-3xl font-semibold tracking-tight text-fg">
                 Rolea
               </span>
             </Link>

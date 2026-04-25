@@ -201,7 +201,7 @@ export function StoryChat({ storyId }: { storyId: string }) {
         <header className="shrink-0 border-b border-line/15 bg-surface/40 p-5 backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/30 via-fuchsia-500/20 to-ember/20 text-accent-ring">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/25 via-fuchsia-500/15 to-ember/15 text-accent-ring shadow-glow">
                 <Feather size={18} />
               </span>
               <div>
@@ -357,9 +357,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   if (isUser) {
     return (
       <article className="message-enter flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-gradient-to-br from-accent via-fuchsia-500 to-ember/85 px-4 py-3 text-sm leading-6 text-white shadow-glow">
+        <div className="relative max-w-[85%] rounded-2xl rounded-tr-md border border-accent/30 bg-accent-hover/95 px-4 py-3 text-sm leading-6 text-white shadow-glow">
+          <span className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-ember/60 to-transparent" />
           <p>{message.content}</p>
-          <p className="mt-1 text-right text-[11px] uppercase tracking-[0.18em] text-white/70">
+          <p className="mt-1 text-right text-[11px] uppercase tracking-[0.18em] text-white/75">
             {message.timestamp}
           </p>
         </div>
@@ -370,8 +371,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   if (isNarration) {
     return (
       <article className="message-enter flex gap-3">
-        <span className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-line/15 bg-surface-2/60 text-accent-ring">
-          <Feather size={14} />
+        <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-line/15 bg-surface-2/60 text-accent-ring">
+          <Feather size={12} />
         </span>
         <div className="flex-1 text-sm leading-6 text-muted">
           <p className="italic">{message.content}</p>
@@ -405,7 +406,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     <article className="message-enter flex gap-3">
       <span
         className={cn(
-          "mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-glow",
+          "mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br text-xs font-semibold text-white shadow-glow",
           palette
         )}
       >
@@ -413,9 +414,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </span>
       <div className="flex-1">
         <p className="text-sm font-semibold text-accent-ring">{message.author}</p>
-        <div className="mt-1 inline-block max-w-full rounded-2xl rounded-tl-md border border-line/15 bg-surface-2/65 px-4 py-3 text-sm leading-6 text-fg">
-          {message.content}
-        </div>
+        <p className="mt-1 text-sm leading-6 text-fg">{message.content}</p>
         <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">
           {message.timestamp}
         </p>

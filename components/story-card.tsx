@@ -108,7 +108,7 @@ export function StoryCard({ story, offset = 0, highlights, variant = "library" }
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-ring/70 to-transparent opacity-0 transition group-hover:opacity-100" />
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-ember/45 to-transparent opacity-0 transition group-hover:opacity-100" />
 
-      <div className="relative flex min-h-[280px] flex-col justify-between gap-4 p-5">
+      <div className="relative flex min-h-[280px] flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <span
             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] ${badge.className}`}
@@ -193,7 +193,7 @@ export function StoryCard({ story, offset = 0, highlights, variant = "library" }
           </div>
         </div>
 
-        <div className="space-y-4 text-white">
+        <div className="mt-auto space-y-4 text-white">
           <div>
             {editing ? (
               <div className="flex items-center gap-2">
@@ -223,12 +223,12 @@ export function StoryCard({ story, offset = 0, highlights, variant = "library" }
             ) : (
               <Link
                 href={`/app/story/${story.id}`}
-                className="font-serif text-2xl font-semibold leading-tight transition hover:text-accent-ring"
+                className="line-clamp-2 block min-h-[3.75rem] font-serif text-2xl font-semibold leading-tight transition hover:text-accent-ring"
               >
                 <Highlight parts={highlights?.title} fallback={story.title} />
               </Link>
             )}
-            <p className="mt-1 text-sm text-white/80">
+            <p className="mt-1 line-clamp-1 text-sm text-white/80">
               <Highlight parts={highlights?.genre} fallback={story.genre} />
               {" · "}
               <span className="text-white/60">
@@ -236,7 +236,7 @@ export function StoryCard({ story, offset = 0, highlights, variant = "library" }
               </span>
             </p>
             {variant === "library" && (
-              <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/70">
+              <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed text-white/70">
                 <Highlight parts={highlights?.summary} fallback={story.summary} />
               </p>
             )}
