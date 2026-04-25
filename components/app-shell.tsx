@@ -21,6 +21,7 @@ import {
   X
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { RoleaWordmark } from "@/components/rolea-wordmark";
 import {
   demoCharacters,
   demoNotifications,
@@ -105,16 +106,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex shrink-0 items-center justify-between">
             <Link
               href="/app"
-              className="reveal-up group flex items-center gap-3"
+              className="reveal-up group inline-flex items-center"
               aria-label="Rolea"
             >
-              <span className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-glow ring-1 ring-line/15 transition group-hover:scale-[1.03]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icon.svg" alt="" className="h-full w-full" />
-              </span>
-              <span className="font-serif text-3xl font-semibold tracking-tight text-fg">
-                Rolea
-              </span>
+              <RoleaWordmark className="text-3xl transition group-hover:opacity-90" />
             </Link>
             <button
               type="button"
