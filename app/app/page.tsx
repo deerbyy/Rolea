@@ -1,102 +1,103 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Clock, Plus, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Bot, BookOpen, Feather, MessageCircle, MoreHorizontal, Plus, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
 import { StoryCard } from "@/components/story-card";
-import { demoCharacters, demoStories, demoWorlds } from "@/lib/demo-data";
+import { demoStories } from "@/lib/demo-data";
 
-const activity = [
-  "Лира остановилась перед дверью старой библиотеки.",
-  "В мир Весперии добавлено правило: дверь открывается только после выбора роли.",
-  "Кайр получил новую черту: скрывает долг перед фонарщиками."
+const heroFeatures = [
+  { icon: BookOpen, title: "Создавай миры", subtitle: "и персонажей" },
+  { icon: MessageCircle, title: "Играй в своей", subtitle: "истории через чат" },
+  { icon: Sparkles, title: "Нейросеть ведёт", subtitle: "сюжет и мир" }
+];
+
+const chatPreview = [
+  {
+    kind: "narration" as const,
+    time: "19:21",
+    text: "Ночь опускается на город. Фонари бросают дрожащий свет на мокрую брусчатку. Вдалеке слышен колокольный звон. Ты стоишь перед дверью старой библиотеки."
+  },
+  {
+    kind: "character" as const,
+    author: "Лира",
+    initials: "Л",
+    time: "19:21",
+    text: "Ты пришёл. Я знала, что ты не оставишь меня одну."
+  },
+  {
+    kind: "character" as const,
+    author: "Кайр",
+    initials: "К",
+    time: "19:22",
+    text: "Время уходит, и тени становятся ближе. Что будем делать?"
+  },
+  {
+    kind: "user" as const,
+    time: "19:22",
+    text: "Я осматриваюсь и ищу другой вход."
+  }
 ];
 
 export default function AppHomePage() {
-  const activeStory = demoStories[0];
-  const activeWorld = demoWorlds[0];
-
   return (
-    <PageContainer>
-      <section className="relative overflow-hidden rounded-3xl border border-line/10 p-6 shadow-soft md:p-10">
-        <div className="animated-hero absolute inset-0 hero-image" />
-        <div className="absolute inset-0 bg-gradient-to-r from-bg/85 via-bg/45 to-transparent" />
-        <div className="ambient-grid" />
-        <div className="mist-layer" />
-        <div className="reveal-up relative max-w-2xl">
-          <p className="pulse-ring mb-4 inline-flex rounded-full border border-accent/30 bg-accent/15 px-4 py-2 text-sm text-accent-ring">
-            Главная мастерская автора
-          </p>
-          <h1 className="font-serif text-4xl font-semibold leading-tight md:text-6xl">
-            Создавай. Проживай. Пиши свою историю.
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-muted md:text-lg">
-            Погрузись в мир, который ты создал. Ты не просто читатель — ты герой,
-            соавтор и источник каждого поворота.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button href="/app/onboarding" size="lg">
-              <Plus size={18} /> Создать историю
-            </Button>
-            <Button href={`/app/story/${activeStory.id}`} variant="secondary" size="lg">
-              Продолжить игру <ArrowRight size={18} />
-            </Button>
+    <PageContainer size="wide" className="pb-12">
+      <section className="relative overflow-hidden rounded-[28px] border border-line/15 shadow-soft">
+        <div className="hero-image animated-hero absolute inset-0" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-r from-bg/95 via-bg/55 to-bg/15" aria-hidden />
+        <div className="ambient-grid" aria-hidden />
+        <div className="mist-layer" aria-hidden />
+
+        <div className="relative grid gap-10 p-6 md:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(360px,440px)] lg:gap-12 lg:p-14">
+          <div className="reveal-up flex flex-col justify-center">
+            <h1 className="font-serif text-4xl font-semibold leading-[1.05] tracking-tight md:text-5xl xl:text-6xl">
+              <span className="block">Создавай.</span>
+              <span className="block">Проживай.</span>
+              <span className="block bg-gradient-to-r from-accent via-fuchsia-400 to-ember bg-clip-text text-transparent">
+                Пиши свою историю.
+              </span>
+            </h1>
+            <p className="mt-6 max-w-md text-base leading-7 text-muted md:text-lg">
+              Погрузись в мир, который ты создал.
+              <br className="hidden sm:inline" />
+              Ты — не просто читатель, ты — герой.
+            </p>
+
+            <div className="mt-8">
+              <Button href="/app/onboarding" size="lg">
+                <Plus size={18} /> Создать историю
+              </Button>
+            </div>
+
+            <ul className="mt-10 grid grid-cols-3 gap-4 max-w-lg sm:gap-6">
+              {heroFeatures.map(({ icon: Icon, title, subtitle }) => (
+                <li key={title} className="reveal-up reveal-delay-1 flex flex-col items-start gap-2">
+                  <span className="icon-breathe inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-accent/30 bg-accent/15 text-accent-ring">
+                    <Icon size={18} />
+                  </span>
+                  <p className="text-xs leading-5 text-muted sm:text-sm">
+                    <span className="block text-fg">{title}</span>
+                    {subtitle}
+                  </p>
+                </li>
+              ))}
+            </ul>
           </div>
+
+          <ChatPreviewCard />
         </div>
       </section>
 
-      <section className="mt-8 grid gap-5 xl:grid-cols-[1fr_380px]">
-        <article className="glass reveal-up rounded-3xl p-6">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.18em] text-accent-ring/90">Текущая история</p>
-              <h2 className="mt-3 font-serif text-3xl md:text-4xl">{activeStory.title}</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">{activeStory.summary}</p>
-            </div>
-            <Button href={`/app/story/${activeStory.id}`} size="md" className="shrink-0">
-              Продолжить <ArrowRight size={16} />
-            </Button>
-          </div>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            <Stat icon={Users} label="Персонажи" value={String(demoCharacters.length)} />
-            <Stat icon={BookOpen} label="Глава" value={String(activeStory.chapter)} />
-            <Stat icon={Sparkles} label="Мир истории" value={activeWorld.name} />
-          </div>
-        </article>
-
-        <aside className="glass reveal-up reveal-delay-1 rounded-3xl p-6">
-          <div className="mb-4 flex items-center gap-3">
-            <Clock className="text-accent-ring" size={20} />
-            <h2 className="font-serif text-2xl md:text-3xl">Последние события</h2>
-          </div>
-          <div className="space-y-3">
-            {activity.map((item) => (
-              <p
-                key={item}
-                className="rounded-2xl border border-line/15 bg-surface-2/40 p-4 text-sm leading-6 text-muted"
-              >
-                {item}
-              </p>
-            ))}
-          </div>
-        </aside>
-      </section>
-
-      <section className="mt-12">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="font-serif text-3xl font-semibold">Продолжить игру</h2>
-            <p className="mt-2 text-sm text-muted">
-              Только твои истории. Персонажи и миры живут внутри конкретной истории.
-            </p>
-          </div>
+      <section className="mt-10 md:mt-12">
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <h2 className="font-serif text-2xl font-semibold md:text-3xl">Продолжить игру</h2>
           <Link
             href="/app/stories"
-            className="inline-flex items-center gap-2 text-sm text-accent-ring hover:text-fg"
+            className="inline-flex items-center gap-2 text-sm text-accent-ring transition hover:text-fg"
           >
             Все истории <ArrowRight size={16} />
           </Link>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {demoStories.map((story, index) => (
             <StoryCard key={story.id} story={story} offset={index} />
           ))}
@@ -106,18 +107,101 @@ export default function AppHomePage() {
   );
 }
 
-type StatProps = {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  value: string;
-};
+function ChatPreviewCard() {
+  const story = demoStories[0];
 
-function Stat({ icon: Icon, label, value }: StatProps) {
   return (
-    <div className="rounded-2xl border border-line/15 bg-surface-2/40 p-4">
-      <Icon className="text-accent-ring" size={18} />
-      <p className="mt-3 text-xs uppercase tracking-[0.16em] text-subtle">{label}</p>
-      <p className="mt-1 font-serif text-2xl">{value}</p>
-    </div>
+    <aside className="reveal-up reveal-delay-1 glass relative flex flex-col rounded-3xl border border-line/15 p-5 shadow-2xl">
+      <header className="flex items-start justify-between gap-3 border-b border-line/10 pb-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-accent/30 bg-accent/15 text-accent-ring">
+            <Feather size={18} />
+          </span>
+          <div>
+            <p className="font-serif text-base font-semibold text-fg">{story.title}</p>
+            <p className="text-xs text-muted">Глава {story.chapter}. Пробуждение</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-muted">
+          <button
+            type="button"
+            aria-label="Память сцены"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-line/15 transition hover:text-fg"
+          >
+            <Bot size={14} />
+          </button>
+          <button
+            type="button"
+            aria-label="Меню"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-line/15 transition hover:text-fg"
+          >
+            <MoreHorizontal size={14} />
+          </button>
+        </div>
+      </header>
+
+      <div className="mt-4 flex flex-col gap-4">
+        {chatPreview.map((message, index) => {
+          if (message.kind === "narration") {
+            return (
+              <div key={index} className="flex gap-3">
+                <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-line/15 bg-surface-2/60 text-accent-ring">
+                  <Feather size={12} />
+                </span>
+                <div className="flex-1 text-sm leading-6 text-muted">
+                  <p className="italic">{message.text}</p>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">{message.time}</p>
+                </div>
+              </div>
+            );
+          }
+          if (message.kind === "character") {
+            return (
+              <div key={index} className="flex gap-3">
+                <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-fuchsia-500 text-xs font-semibold text-white">
+                  {message.initials}
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-accent-ring">{message.author}</p>
+                  <p className="mt-1 text-sm leading-6 text-fg">{message.text}</p>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-subtle">{message.time}</p>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={index} className="flex justify-end">
+              <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-accent/85 px-4 py-2 text-sm text-white shadow-lg">
+                <p>{message.text}</p>
+                <p className="mt-1 text-right text-[11px] uppercase tracking-[0.18em] text-white/70">{message.time}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <form
+        action={`/app/story/${story.id}`}
+        className="mt-5 flex items-center gap-2 rounded-2xl border border-line/15 bg-surface-2/60 px-4 py-2"
+      >
+        <input
+          type="text"
+          placeholder="Ваше действие или реплика..."
+          className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-subtle"
+          aria-label="Действие или реплика"
+          readOnly
+        />
+        <span className="text-accent-ring">
+          <Sparkles size={16} />
+        </span>
+        <Link
+          href={`/app/story/${story.id}`}
+          aria-label="Открыть историю"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-glow transition hover:bg-accent-hover"
+        >
+          <Send size={14} />
+        </Link>
+      </form>
+    </aside>
   );
 }
