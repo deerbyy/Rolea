@@ -27,46 +27,75 @@ function extractGeminiText(payload: GeminiResponse) {
   );
 }
 
+const GEMINI_TIMEOUT_MS = 20_000;
+
 async function callGemini(prompt: string) {
   if (!env.geminiApiKey) {
     return null;
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${env.geminiModel}:generateContent?key=${env.geminiApiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.85,
-          topP: 0.92,
-          maxOutputTokens: 900
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${env.geminiModel}:generateContent?key=${env.geminiApiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
         },
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
-        ]
-      }),
-      cache: "no-store"
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.85,
+            topP: 0.92,
+            maxOutputTokens: 900
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+          ]
+        }),
+        cache: "no-store",
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini request failed: ${response.status}`);
     }
-  );
 
-  if (!response.ok) {
-    throw new Error(`Gemini request failed: ${response.status}`);
+    return extractGeminiText((await response.json()) as GeminiResponse);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return null;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
+}
 
-  return extractGeminiText((await response.json()) as GeminiResponse);
+function safeParseJson<T>(text: string): T | null {
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    return null;
+  }
 }
 
 function fallbackScene(draft: OnboardingDraft): AiSceneResponse {
@@ -112,12 +141,13 @@ export async function generateScene(draft: OnboardingDraft): Promise<AiSceneResp
     return fallbackScene(draft);
   }
 
-  try {
-    return JSON.parse(text.replace(/^```json|```$/g, "").trim()) as AiSceneResponse;
-  } catch {
-    const fallback = fallbackScene(draft);
-    return { ...fallback, openingScene: text };
+  const parsed = safeParseJson<AiSceneResponse>(text);
+  if (parsed) {
+    return parsed;
   }
+
+  const fallback = fallbackScene(draft);
+  return { ...fallback, openingScene: text };
 }
 
 export async function continueStory(messages: ChatMessage[], action: string) {
@@ -134,12 +164,13 @@ export async function continueStory(messages: ChatMessage[], action: string) {
     return fallbackReply(action);
   }
 
-  try {
-    return JSON.parse(text.replace(/^```json|```$/g, "").trim()) as ReturnType<typeof fallbackReply>;
-  } catch {
-    const fallback = fallbackReply(action);
-    return { ...fallback, narration: text };
+  const parsed = safeParseJson<ReturnType<typeof fallbackReply>>(text);
+  if (parsed) {
+    return parsed;
   }
+
+  const fallback = fallbackReply(action);
+  return { ...fallback, narration: text };
 }
 
 export async function assistStoryField({

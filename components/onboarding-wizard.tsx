@@ -1,25 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Wand2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { demoTemplates, formats, genres } from "@/lib/demo-data";
 import type { AiSceneResponse, OnboardingDraft } from "@/lib/types";
+
+type AssistField = "world" | "protagonist" | "userRole";
 
 const initialDraft: OnboardingDraft = {
   genre: "Фэнтези",
   format: "Книга",
-  world: "Весперия, город библиотек под вечной луной",
-  protagonist: "Лира, хранительница запретной библиотеки",
-  userRole: "Автор играет героя, который умеет слышать слова старых книг"
+  world: "",
+  protagonist: "",
+  userRole: ""
 };
 
-const steps = ["Жанр", "Формат", "Мир", "Персонаж", "Роль"];
+const steps = ["Жанр", "Формат", "Мир", "Персонаж", "Роль", "Готово"];
 
 export function OnboardingWizard() {
   const searchParams = useSearchParams();
-  const selectedTemplate = demoTemplates.find((template) => template.id === searchParams.get("template"));
+  const selectedTemplate = demoTemplates.find(
+    (template) => template.id === searchParams.get("template")
+  );
+
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<OnboardingDraft>(() => {
     if (!selectedTemplate) {
@@ -35,13 +41,60 @@ export function OnboardingWizard() {
   });
   const [scene, setScene] = useState<AiSceneResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [assistingField, setAssistingField] = useState<"world" | "protagonist" | "userRole" | null>(null);
+  const [autoFilling, setAutoFilling] = useState(false);
+  const [assistingField, setAssistingField] = useState<AssistField | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const progress = useMemo(() => ((step + 1) / steps.length) * 100, [step]);
 
   function update<K extends keyof OnboardingDraft>(key: K, value: OnboardingDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  async function callAssist(field: AssistField, currentValue: string, snapshot: OnboardingDraft) {
+    const response = await fetch("/api/ai/assist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field, currentValue, draft: snapshot })
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? "AI-помощник не смог улучшить текст.");
+    }
+
+    return payload.text as string;
+  }
+
+  async function assist(field: AssistField) {
+    setAssistingField(field);
+    setError(null);
+    try {
+      const text = await callAssist(field, draft[field], draft);
+      update(field, text);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Ошибка AI-помощника.");
+    } finally {
+      setAssistingField(null);
+    }
+  }
+
+  async function autoFill() {
+    setAutoFilling(true);
+    setError(null);
+    try {
+      let snapshot: OnboardingDraft = { ...draft };
+      const fields: AssistField[] = ["world", "protagonist", "userRole"];
+      for (const field of fields) {
+        const text = await callAssist(field, snapshot[field], snapshot);
+        snapshot = { ...snapshot, [field]: text };
+        update(field, text);
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Не удалось заполнить с AI.");
+    } finally {
+      setAutoFilling(false);
+    }
   }
 
   async function generate() {
@@ -65,55 +118,52 @@ export function OnboardingWizard() {
     setScene(payload);
   }
 
-  async function assist(field: "world" | "protagonist" | "userRole") {
-    setAssistingField(field);
-    setError(null);
-
-    const response = await fetch("/api/ai/assist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ field, currentValue: draft[field], draft })
-    });
-
-    const payload = await response.json();
-    setAssistingField(null);
-
-    if (!response.ok) {
-      setError(payload.error ?? "AI-помощник не смог улучшить текст.");
-      return;
-    }
-
-    update(field, payload.text);
-  }
-
   return (
     <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
       <aside className="glass reveal-up overflow-hidden rounded-3xl p-6">
         <div className="ambient-grid opacity-20" />
-        <p className="relative text-sm uppercase tracking-[0.18em] text-violet-200">Онбординг</p>
+        <p className="relative text-sm uppercase tracking-[0.18em] text-accent-ring/90">Онбординг</p>
         {selectedTemplate && (
-          <p className="message-enter relative mt-4 rounded-2xl border border-violet-300/20 bg-violet-500/12 p-3 text-sm text-violet-100">
+          <p className="message-enter relative mt-4 rounded-2xl border border-accent/30 bg-accent/12 p-3 text-sm text-accent-ring">
             Основа выбрана: {selectedTemplate.title}
           </p>
         )}
-        <h1 className="relative mt-4 font-serif text-5xl font-semibold">Создай первую сцену</h1>
-        <p className="relative mt-4 text-sm leading-6 text-white/62">
-          Пять шагов превращают идею в историю. Поля можно заполнить самому или оставить как основу для AI.
+        <h1 className="relative mt-4 font-serif text-4xl font-semibold md:text-5xl">
+          Создай первую сцену
+        </h1>
+        <p className="relative mt-4 text-sm leading-6 text-muted">
+          Шесть шагов превращают идею в историю. Поля можно заполнить самому или нажать «AI заполнит за меня».
         </p>
 
-        <div className="relative mt-8 space-y-3">
+        <Button
+          onClick={autoFill}
+          disabled={autoFilling}
+          variant="soft"
+          size="md"
+          className="relative mt-5 w-full"
+        >
+          {autoFilling ? <Loader2 className="animate-spin" size={16} /> : <Wand2 size={16} />}
+          AI заполнит мир, героя и роль
+        </Button>
+
+        <div className="relative mt-6 space-y-2">
           {steps.map((label, index) => (
             <button
               key={label}
               type="button"
               onClick={() => setStep(index)}
+              aria-current={index === step ? "step" : undefined}
               className={`nav-hover flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                 index === step
-                  ? "border-violet-400/50 bg-violet-500/20"
-                  : "border-white/10 bg-white/[0.04] text-white/62 hover:text-white"
+                  ? "border-accent/40 bg-accent/22 text-fg"
+                  : "border-line/15 bg-surface-2/30 text-muted hover:text-fg"
               }`}
             >
-              <span className={`grid h-8 w-8 place-items-center rounded-full bg-white/10 text-sm ${index === step ? "pulse-ring" : ""}`}>
+              <span
+                className={`grid h-8 w-8 place-items-center rounded-full text-sm ${
+                  index === step ? "bg-accent text-accent-fg pulse-ring" : "bg-surface-3/50 text-muted"
+                }`}
+              >
                 {index + 1}
               </span>
               {label}
@@ -121,113 +171,119 @@ export function OnboardingWizard() {
           ))}
         </div>
 
-        <div className="relative mt-8 h-1.5 overflow-hidden rounded-full bg-white/10">
-          <div className="progress-shine h-full rounded-full bg-gradient-to-r from-violet-400 to-amber-300 transition-all duration-500" style={{ width: `${progress}%` }} />
+        <div className="relative mt-8 h-1.5 overflow-hidden rounded-full bg-surface-3/60">
+          <div
+            className="progress-shine h-full rounded-full bg-gradient-to-r from-accent to-ember transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </aside>
 
       <section className="glass reveal-up reveal-delay-1 rounded-3xl p-6">
         <div key={step} className="message-enter">
           {step === 0 && (
-          <ChoiceStep
-            title="Выбери жанр"
-            description="Можно выбрать несколько жанров или вписать свой. AI сам разберет, что ты имеешь в виду."
-            options={genres}
-            value={draft.genre}
-            multiple
-            onSelect={(value) => update("genre", value)}
-          />
+            <ChoiceStep
+              title="Выбери жанр"
+              description="Можно выбрать несколько жанров или вписать свой. AI сам разберёт, что ты имеешь в виду."
+              options={genres}
+              value={draft.genre}
+              multiple
+              onSelect={(value) => update("genre", value)}
+            />
           )}
           {step === 1 && (
-          <ChoiceStep
-            title="Выбери формат"
-            description="Формат влияет на ритм сцен. Можно выбрать готовый вариант или написать свой."
-            options={formats}
-            value={draft.format}
-            onSelect={(value) => update("format", value)}
-          />
+            <ChoiceStep
+              title="Выбери формат"
+              description="Формат влияет на ритм сцен. Можно выбрать готовый вариант или написать свой."
+              options={formats}
+              value={draft.format}
+              onSelect={(value) => update("format", value)}
+            />
           )}
           {step === 2 && (
-          <TextStep
-            title="Опиши мир или локацию"
-            value={draft.world}
-            onChange={(value) => update("world", value)}
-            onAssist={() => assist("world")}
-            assisting={assistingField === "world"}
-            assistLabel="AI может придумать мир с нуля или улучшить твой набросок. Мир будет относиться только к этой истории."
-            placeholder="Например: академия магии на краю ледяного моря..."
-          />
+            <TextStep
+              title="Опиши мир или локацию"
+              value={draft.world}
+              onChange={(value) => update("world", value)}
+              onAssist={() => assist("world")}
+              assisting={assistingField === "world"}
+              assistLabel="AI может придумать мир с нуля или улучшить твой набросок. Мир будет относиться только к этой истории."
+              placeholder="Например: академия магии на краю ледяного моря…"
+            />
           )}
           {step === 3 && (
-          <TextStep
-            title="Добавь ключевого персонажа"
-            value={draft.protagonist}
-            onChange={(value) => update("protagonist", value)}
-            onAssist={() => assist("protagonist")}
-            assisting={assistingField === "protagonist"}
-            assistLabel="AI поможет дописать характер, мотивацию, слабость и тайну персонажа именно для этой истории."
-            placeholder="Имя, роль, характер, тайна..."
-          />
+            <TextStep
+              title="Добавь ключевого персонажа"
+              value={draft.protagonist}
+              onChange={(value) => update("protagonist", value)}
+              onAssist={() => assist("protagonist")}
+              assisting={assistingField === "protagonist"}
+              assistLabel="AI поможет дописать характер, мотивацию, слабость и тайну персонажа именно для этой истории."
+              placeholder="Имя, роль, характер, тайна…"
+            />
           )}
           {step === 4 && (
-          <TextStep
-            title="Кем ты будешь в истории?"
-            value={draft.userRole}
-            onChange={(value) => update("userRole", value)}
-            onAssist={() => assist("userRole")}
-            assisting={assistingField === "userRole"}
-            assistLabel="AI поможет оформить твою роль, способности и первый конфликт, от которого начнется сцена."
-            placeholder="Главный герой, союзник, свидетель, антагонист..."
-          />
+            <TextStep
+              title="Кем ты будешь в истории?"
+              value={draft.userRole}
+              onChange={(value) => update("userRole", value)}
+              onAssist={() => assist("userRole")}
+              assisting={assistingField === "userRole"}
+              assistLabel="AI поможет оформить твою роль, способности и первый конфликт, от которого начнётся сцена."
+              placeholder="Главный герой, союзник, свидетель, антагонист…"
+            />
           )}
+          {step === 5 && <ReviewStep draft={draft} onJump={(i) => setStep(i)} />}
         </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <button
-            type="button"
+          <Button
             onClick={() => setStep((current) => Math.max(0, current - 1))}
-            className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-white/70 transition hover:-translate-y-0.5 hover:text-white"
+            disabled={step === 0}
+            variant="secondary"
+            size="md"
           >
             Назад
-          </button>
+          </Button>
           {step < steps.length - 1 ? (
-            <button
-              type="button"
+            <Button
               onClick={() => setStep((current) => Math.min(steps.length - 1, current + 1))}
-              className="interactive-glow inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-5 py-3 font-semibold transition hover:-translate-y-0.5 hover:bg-violet-500"
+              size="md"
             >
               Далее <ArrowRight size={18} />
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
-              onClick={generate}
-              disabled={loading}
-              className="interactive-glow inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-5 py-3 font-semibold transition hover:-translate-y-0.5 hover:bg-violet-500 disabled:opacity-65"
-            >
+            <Button onClick={generate} disabled={loading} size="md">
               {loading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
               Получить первую сцену
-            </button>
+            </Button>
           )}
         </div>
 
-        {error && <p className="mt-5 rounded-2xl border border-red-300/20 bg-red-500/10 p-4 text-sm text-red-100">{error}</p>}
+        {error && (
+          <p className="mt-5 rounded-2xl border border-danger/30 bg-danger/15 p-4 text-sm text-danger">
+            {error}
+          </p>
+        )}
 
         {scene && (
-          <div className="message-enter mt-8 rounded-3xl border border-violet-300/20 bg-violet-500/10 p-5 shadow-glow">
-            <p className="text-sm text-violet-200">Сцена создана</p>
-            <h2 className="mt-2 font-serif text-4xl">{scene.title}</h2>
-            <p className="mt-4 text-sm leading-7 text-white/72">{scene.openingScene}</p>
+          <div className="message-enter mt-8 rounded-3xl border border-accent/30 bg-accent/12 p-5 shadow-glow">
+            <p className="text-sm text-accent-ring">Сцена создана</p>
+            <h2 className="mt-2 font-serif text-3xl md:text-4xl">{scene.title}</h2>
+            <p className="mt-4 text-sm leading-7 text-muted">{scene.openingScene}</p>
             <div className="mt-5 flex flex-wrap gap-2">
               {scene.suggestions.map((suggestion) => (
-                <span key={suggestion} className="hover-lift rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs text-white/70">
+                <span
+                  key={suggestion}
+                  className="hover-lift rounded-full border border-line/20 bg-surface-2/40 px-3 py-2 text-xs text-muted"
+                >
                   {suggestion}
                 </span>
               ))}
             </div>
             <Link
               href="/app/story/vesperia"
-              className="interactive-glow mt-6 inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 font-semibold text-slate-950"
+              className="interactive-glow mt-6 inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 font-semibold text-accent-fg transition hover:-translate-y-0.5 hover:bg-accent-hover"
             >
               Начать играть <ArrowRight size={18} />
             </Link>
@@ -288,8 +344,8 @@ function ChoiceStep({
 
   return (
     <>
-      <h2 className="font-serif text-4xl font-semibold">{title}</h2>
-      <p className="mt-3 text-white/60">{description}</p>
+      <h2 className="font-serif text-3xl font-semibold md:text-4xl">{title}</h2>
+      <p className="mt-3 text-muted">{description}</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {options.map((option) => (
           <button
@@ -298,16 +354,18 @@ function ChoiceStep({
             onClick={() => pick(option)}
             className={`hover-lift rounded-2xl border p-5 text-left transition ${
               selected.includes(option)
-                ? "border-violet-400 bg-violet-500/20 text-white"
-                : "border-white/10 bg-white/[0.04] text-white/68 hover:text-white"
+                ? "border-accent/50 bg-accent/22 text-fg"
+                : "border-line/15 bg-surface-2/40 text-muted hover:text-fg"
             }`}
           >
             {option}
           </button>
         ))}
       </div>
-      <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-        <p className="text-sm text-white/62">{multiple ? "Свой жанр или смесь жанров" : "Свой формат"}</p>
+      <div className="mt-5 rounded-3xl border border-line/15 bg-surface-2/40 p-4">
+        <p className="text-sm text-muted">
+          {multiple ? "Свой жанр или смесь жанров" : "Свой формат"}
+        </p>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <input
             value={custom}
@@ -318,18 +376,18 @@ function ChoiceStep({
                 addCustom();
               }
             }}
-            className="min-h-12 flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 text-white outline-none transition focus:border-violet-300/50"
-            placeholder={multiple ? "Например: романтика + хоррор + школа магии" : "Например: аниме-сериал, дневник, интерактивная манга..."}
+            className="min-h-12 flex-1 rounded-2xl border border-line/15 bg-surface px-4 text-fg outline-none transition focus:border-accent"
+            placeholder={
+              multiple
+                ? "Например: романтика + хоррор + школа магии"
+                : "Например: аниме-сериал, дневник, интерактивная манга…"
+            }
           />
-          <button
-            type="button"
-            onClick={addCustom}
-            className="interactive-glow rounded-2xl border border-violet-200/50 bg-violet-600 px-5 py-3 text-sm font-semibold transition active:scale-[0.97] hover:bg-violet-500"
-          >
+          <Button onClick={addCustom} size="md">
             Добавить
-          </button>
+          </Button>
         </div>
-        {value && <p className="mt-3 text-xs text-violet-100">Выбрано: {value}</p>}
+        {value && <p className="mt-3 text-xs text-accent-ring">Выбрано: {value}</p>}
       </div>
     </>
   );
@@ -354,27 +412,65 @@ function TextStep({
 }) {
   return (
     <>
-      <h2 className="font-serif text-4xl font-semibold">{title}</h2>
+      <h2 className="font-serif text-3xl font-semibold md:text-4xl">{title}</h2>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="mt-6 min-h-[240px] w-full resize-none rounded-3xl border border-white/10 bg-white/[0.04] p-5 leading-7 text-white outline-none transition focus:-translate-y-0.5 focus:border-violet-400 focus:shadow-glow placeholder:text-white/35"
+        className="mt-6 min-h-[220px] w-full resize-none rounded-3xl border border-line/15 bg-surface-2/40 p-5 leading-7 text-fg outline-none transition focus:-translate-y-0.5 focus:border-accent focus:shadow-glow"
       />
       {onAssist && (
-        <div className="mt-4 rounded-3xl border border-violet-300/20 bg-violet-500/10 p-4">
-          <p className="text-sm leading-6 text-violet-100">{assistLabel}</p>
-          <button
-            type="button"
-            onClick={onAssist}
-            disabled={assisting}
-            className="interactive-glow mt-3 inline-flex items-center gap-2 rounded-2xl border border-violet-200/60 bg-violet-600 px-5 py-3 text-sm font-semibold transition active:scale-[0.97] hover:bg-violet-500 disabled:opacity-65"
-          >
+        <div className="mt-4 rounded-3xl border border-accent/25 bg-accent/12 p-4">
+          <p className="text-sm leading-6 text-accent-ring">{assistLabel}</p>
+          <Button onClick={onAssist} disabled={assisting} variant="primary" size="md" className="mt-3">
             {assisting ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
             {value.trim() ? "Улучшить с AI" : "Сгенерировать с AI"}
-          </button>
+          </Button>
         </div>
       )}
+    </>
+  );
+}
+
+function ReviewStep({
+  draft,
+  onJump
+}: {
+  draft: OnboardingDraft;
+  onJump: (step: number) => void;
+}) {
+  const fields: Array<{ label: string; value: string; step: number }> = [
+    { label: "Жанр", value: draft.genre, step: 0 },
+    { label: "Формат", value: draft.format, step: 1 },
+    { label: "Мир", value: draft.world, step: 2 },
+    { label: "Ключевой персонаж", value: draft.protagonist, step: 3 },
+    { label: "Роль пользователя", value: draft.userRole, step: 4 }
+  ];
+
+  return (
+    <>
+      <h2 className="font-serif text-3xl font-semibold md:text-4xl">Проверь черновик</h2>
+      <p className="mt-3 text-muted">
+        Мы соберём первую сцену по этим полям. Любое можно поправить — нажми на блок, чтобы вернуться к шагу.
+      </p>
+      <div className="mt-6 space-y-3">
+        {fields.map((field) => (
+          <button
+            key={field.label}
+            type="button"
+            onClick={() => onJump(field.step)}
+            className="hover-lift block w-full rounded-2xl border border-line/15 bg-surface-2/40 p-4 text-left"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.16em] text-accent-ring/90">{field.label}</p>
+              <span className="text-xs text-subtle">Изменить</span>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-fg">
+              {field.value.trim() ? field.value : <span className="text-subtle">Пусто — AI подхватит сам.</span>}
+            </p>
+          </button>
+        ))}
+      </div>
     </>
   );
 }
