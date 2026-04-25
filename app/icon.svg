@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Rolea">
+  <defs>
+    <linearGradient id="rolea-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b0a1f"/>
+      <stop offset="0.55" stop-color="#1a0f3a"/>
+      <stop offset="1" stop-color="#3a1763"/>
+    </linearGradient>
+    <radialGradient id="rolea-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(364 132) rotate(135) scale(320)">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity="0.85"/>
+      <stop offset="0.45" stop-color="#7c3aed" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#0b0a1f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rolea-glow-2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(110 410) rotate(-30) scale(220)">
+      <stop offset="0" stop-color="#f59e0b" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#0b0a1f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rolea-mark" x1="160" y1="120" x2="380" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#fcd9a5"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="rolea-spark-a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ede9fe"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="rolea-spark-b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="rolea-blur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="118" fill="url(#rolea-bg)"/>
+  <rect width="512" height="512" rx="118" fill="url(#rolea-glow)"/>
+  <rect width="512" height="512" rx="118" fill="url(#rolea-glow-2)"/>
+
+  <g opacity="0.55">
+    <circle cx="86" cy="138" r="2.4" fill="#ede9fe"/>
+    <circle cx="148" cy="92" r="1.6" fill="#fcd9a5"/>
+    <circle cx="438" cy="364" r="2" fill="#ede9fe"/>
+    <circle cx="402" cy="432" r="1.4" fill="#fcd9a5"/>
+    <circle cx="74" cy="290" r="1.6" fill="#a78bfa"/>
+    <circle cx="464" cy="200" r="1.6" fill="#a78bfa"/>
+  </g>
+
+  <g filter="url(#rolea-blur)" opacity="0.55">
+    <path fill="#a78bfa" d="M362 110c12 30 33 50 64 62-31 12-52 32-64 62-12-30-33-50-64-62 31-12 52-32 64-62Z"/>
+  </g>
+
+  <path fill="url(#rolea-mark)" d="M152 358V154h106c45 0 76 27 76 67 0 28-15 50-39 61l69 76h-59l-62-69h-42v69h-49Zm49-108h53c18 0 31-11 31-28s-13-28-31-28h-53v56Z"/>
+
+  <g>
+    <path fill="url(#rolea-spark-a)" d="M362 96c10 28 28 46 56 56-28 10-46 28-56 56-10-28-28-46-56-56 28-10 46-28 56-56Z"/>
+    <path fill="#ffffff" opacity="0.9" d="M362 116c6 17 17 28 34 34-17 6-28 17-34 34-6-17-17-28-34-34 17-6 28-17 34-34Z"/>
+  </g>
+
+  <g>
+    <path fill="url(#rolea-spark-b)" d="M126 396c7 18 18 30 36 37-18 7-29 18-36 37-7-19-18-30-36-37 18-7 29-19 36-37Z"/>
+    <path fill="#fff7ed" opacity="0.85" d="M126 410c4 11 11 18 22 22-11 4-18 11-22 22-4-11-11-18-22-22 11-4 18-11 22-22Z"/>
+  </g>
+
+  <path d="M0 0h512v512H0Z" fill="none"/>
+</svg>
