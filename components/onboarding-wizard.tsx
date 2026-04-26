@@ -419,9 +419,9 @@ function ChoiceStep({
               onClick={() => pick(option)}
               aria-pressed={active}
               className={cn(
-                "hover-lift relative flex items-center gap-3 rounded-2xl border p-5 text-left transition",
+                "relative flex items-center gap-3 rounded-2xl border p-5 text-left transition duration-200",
                 active
-                  ? "border-accent/70 bg-accent/22 text-fg shadow-glow ring-1 ring-accent/40"
+                  ? "border-accent/70 bg-accent/22 text-fg hover:bg-accent/28"
                   : "border-line/15 bg-surface-2/30 text-muted hover:border-line/30 hover:bg-surface-2/50 hover:text-fg"
               )}
             >
