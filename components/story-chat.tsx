@@ -85,6 +85,14 @@ export function StoryChat({ storyId }: { storyId: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isFull]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (isFull) {
+      document.body.setAttribute("data-chat-full", "1");
+      return () => document.body.removeAttribute("data-chat-full");
+    }
+  }, [isFull]);
+
   async function send(action: string, replaceLastReply = false) {
     const trimmed = action.trim();
     if (!trimmed || loading) {
@@ -216,14 +224,22 @@ export function StoryChat({ storyId }: { storyId: string }) {
         // CSS variable drives the right column width — animates via grid-template-columns
         ["--rolea-aside-w" as string]: isFull ? "0px" : "340px",
         maxWidth: isFull ? "100%" : "80rem",
-        transition: `grid-template-columns 520ms ${easing}, max-width 520ms ${easing}`,
+        ...(isFull
+          ? {
+              paddingLeft: "12px",
+              paddingRight: "12px",
+              paddingTop: "12px",
+              paddingBottom: "12px",
+            }
+          : {}),
+        transition: `grid-template-columns 520ms ${easing}, max-width 520ms ${easing}, padding 520ms ${easing}`,
       }}
     >
       <section
         className="glass reveal-up flex flex-col overflow-hidden rounded-3xl"
         style={{
-          height: isFull ? "calc(100vh - 96px)" : "calc(100vh - 132px)",
-          minHeight: isFull ? "480px" : "620px",
+          height: isFull ? "calc(100dvh - 100px)" : "calc(100vh - 132px)",
+          minHeight: isFull ? "320px" : "620px",
           transition: `height 520ms ${easing}, min-height 520ms ${easing}`,
         }}
       >

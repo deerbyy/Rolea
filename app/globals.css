@@ -208,6 +208,10 @@ button {
   padding-bottom: 0;
 }
 
+body[data-chat-full="1"] .rolea-main {
+  overflow: hidden;
+}
+
 @media (max-width: 1023px) {
   .rolea-sidebar {
     transform: translateX(-100%);
