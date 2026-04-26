@@ -12,21 +12,21 @@ const LIRA_TEXT = "Ты пришёл. Я знала, что ты не остав
 const KAYR_TEXT = "Время уходит, и тени становятся ближе. Что будем делать?";
 const USER_TEXT = "Я осматриваюсь и ищу другой вход.";
 
-// All times in milliseconds within one cycle
+// All times in milliseconds within one cycle (~32s — calm cinematic pace)
 const T = {
-  narrTypingStart: 200,
-  narrTypewriterStart: 1300,
-  narrTypewriterEnd: 7000,
-  liraTypingStart: 7800,
-  liraTypingEnd: 8800,
-  kayrTypingStart: 10800,
-  kayrTypingEnd: 11800,
-  userTypewriterStart: 13800,
-  userTypewriterEnd: 16500,
-  userSendBeat: 16800,
-  userMsgStart: 17100,
-  fadeOutStart: 21500,
-  cycleEnd: 23500,
+  narrTypingStart: 400,
+  narrTypewriterStart: 2000,
+  narrTypewriterEnd: 10500,
+  liraTypingStart: 11800,
+  liraTypingEnd: 13400,
+  kayrTypingStart: 15400,
+  kayrTypingEnd: 17000,
+  userTypewriterStart: 19200,
+  userTypewriterEnd: 23200,
+  userSendBeat: 23700,
+  userMsgStart: 24300,
+  fadeOutStart: 28800,
+  cycleEnd: 32000,
 };
 
 function useCycleTick(cycleMs: number) {
@@ -121,7 +121,7 @@ export function ChatPreviewDemo({ story }: { story: Story | undefined }) {
 
   return (
     <aside
-      className="reveal-up reveal-delay-1 glass relative flex flex-col rounded-3xl border border-line/15 p-5 shadow-2xl"
+      className="reveal-up reveal-delay-1 glass relative flex h-[560px] flex-col overflow-hidden rounded-3xl border border-line/15 p-5 shadow-2xl"
       aria-label="Демо-чат истории"
       role="figure"
     >
@@ -148,7 +148,7 @@ export function ChatPreviewDemo({ story }: { story: Story | undefined }) {
       </header>
 
       <div
-        className="mt-4 flex min-h-[280px] flex-col gap-4"
+        className="mt-4 flex flex-1 flex-col justify-end gap-4 overflow-hidden transition-opacity duration-700 ease-out"
         style={{ opacity: cycleOpacity }}
       >
         {/* narration */}
