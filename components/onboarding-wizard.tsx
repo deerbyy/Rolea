@@ -172,48 +172,45 @@ export function OnboardingWizard() {
 
   return (
     <div className="grid h-[calc(100dvh-140px)] gap-6 xl:grid-cols-[360px_1fr]">
-      <aside className="glass reveal-up relative overflow-y-auto rounded-3xl p-6">
+      <aside className="glass reveal-up relative flex min-h-0 flex-col overflow-hidden rounded-3xl p-5">
         <div className="ambient-grid opacity-20" />
-        <p className="relative text-sm uppercase tracking-[0.18em] text-accent-ring/90">Онбординг</p>
+        <p className="relative text-xs uppercase tracking-[0.18em] text-accent-ring/90">Онбординг</p>
         {selectedTemplate && (
-          <p className="message-enter relative mt-4 rounded-2xl border border-accent/30 bg-accent/12 p-3 text-sm text-accent-ring">
-            Основа выбрана: {selectedTemplate.title}
+          <p className="message-enter relative mt-2 rounded-2xl border border-accent/30 bg-accent/12 p-2 text-xs text-accent-ring">
+            Основа: {selectedTemplate.title}
           </p>
         )}
-        <h1 className="relative mt-4 font-serif text-4xl font-semibold md:text-5xl">
+        <h1 className="relative mt-2 font-serif text-2xl font-semibold leading-tight md:text-3xl">
           Создай первую сцену
         </h1>
-        <p className="relative mt-4 text-sm leading-6 text-muted">
-          Шесть шагов превращают идею в историю. Поля можно заполнить самому или нажать «AI заполнит за меня».
-        </p>
 
         <Button
           onClick={autoFill}
           disabled={autoFilling}
           variant="soft"
-          size="md"
-          className="relative mt-5 w-full"
+          size="sm"
+          className="relative mt-3 w-full"
         >
-          {autoFilling ? <Loader2 className="animate-spin" size={16} /> : <Wand2 size={16} />}
+          {autoFilling ? <Loader2 className="animate-spin" size={14} /> : <Wand2 size={14} />}
           AI заполнит мир, героя и роль
         </Button>
 
-        <div className="relative mt-6 space-y-2">
+        <div className="relative mt-4 flex flex-1 flex-col gap-1.5 min-h-0">
           {steps.map((label, index) => (
             <button
               key={label}
               type="button"
               onClick={() => setStep(index)}
               aria-current={index === step ? "step" : undefined}
-              className={`nav-hover flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition duration-200 ${
                 index === step
                   ? "border-accent/40 bg-accent/22 text-fg"
                   : "border-line/15 bg-surface-2/30 text-muted hover:text-fg"
               }`}
             >
               <span
-                className={`grid h-8 w-8 place-items-center rounded-full text-sm ${
-                  index === step ? "bg-accent text-accent-fg pulse-ring" : "bg-surface-3/50 text-muted"
+                className={`grid h-7 w-7 place-items-center rounded-full text-xs ${
+                  index === step ? "bg-accent text-accent-fg" : "bg-surface-3/50 text-muted"
                 }`}
               >
                 {index + 1}
@@ -223,9 +220,9 @@ export function OnboardingWizard() {
           ))}
         </div>
 
-        <div className="relative mt-8 h-1.5 overflow-hidden rounded-full bg-surface-3/60">
+        <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-surface-3/60">
           <div
-            className="progress-shine h-full rounded-full bg-gradient-to-r from-accent to-ember transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-accent to-ember transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -244,7 +241,6 @@ export function OnboardingWizard() {
               onSelect={(value) => update("genre", value)}
               onAssist={() => assist("genre")}
               assisting={assistingField === "genre"}
-              assistKind="жанр"
             />
           )}
           {step === 1 && (
@@ -256,7 +252,6 @@ export function OnboardingWizard() {
               onSelect={(value) => update("format", value)}
               onAssist={() => assist("format")}
               assisting={assistingField === "format"}
-              assistKind="формат"
             />
           )}
           {step === 2 && (
@@ -368,8 +363,7 @@ function ChoiceStep({
   multiple = false,
   onSelect,
   onAssist,
-  assisting = false,
-  assistKind
+  assisting = false
 }: {
   title: string;
   description: string;
@@ -379,7 +373,7 @@ function ChoiceStep({
   onSelect: (value: string) => void;
   onAssist?: () => void;
   assisting?: boolean;
-  assistKind: "жанр" | "формат";
+  assistKind?: string;
 }) {
   const [custom, setCustom] = useState("");
   const selected = value
@@ -416,9 +410,9 @@ function ChoiceStep({
 
   return (
     <>
-      <h2 className="font-serif text-3xl font-semibold md:text-4xl">{title}</h2>
-      <p className="mt-3 text-muted">{description}</p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <h2 className="font-serif text-2xl font-semibold md:text-3xl">{title}</h2>
+      <p className="mt-1.5 text-sm text-muted">{description}</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {options.map((option) => {
           const active = selected.includes(option);
           return (
@@ -428,7 +422,7 @@ function ChoiceStep({
               onClick={() => pick(option)}
               aria-pressed={active}
               className={cn(
-                "relative flex items-center gap-3 rounded-2xl border p-5 text-left transition duration-200",
+                "relative flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition duration-200",
                 active
                   ? "border-accent/70 bg-accent/22 text-fg hover:bg-accent/28"
                   : "border-line/15 bg-surface-2/30 text-muted hover:border-line/30 hover:bg-surface-2/50 hover:text-fg"
@@ -436,70 +430,58 @@ function ChoiceStep({
             >
               <span
                 className={cn(
-                  "grid h-6 w-6 shrink-0 place-items-center rounded-full border transition",
+                  "grid h-5 w-5 shrink-0 place-items-center rounded-full border transition",
                   active
                     ? "border-accent bg-accent text-accent-fg"
                     : "border-line/25 bg-surface/60 text-transparent"
                 )}
               >
-                <Check size={14} strokeWidth={3} />
+                <Check size={12} strokeWidth={3} />
               </span>
-              <span className="font-medium">{option}</span>
+              <span className="text-sm font-medium">{option}</span>
             </button>
           );
         })}
       </div>
 
       {value && (
-        <p className="mt-4 rounded-2xl border border-accent/30 bg-accent/12 px-3 py-2 text-xs text-accent-ring">
+        <p className="mt-3 rounded-xl border border-accent/30 bg-accent/12 px-3 py-1.5 text-xs text-accent-ring">
           Выбрано: {value}
         </p>
       )}
 
-      <div className="mt-5 rounded-3xl border border-accent/25 bg-accent/8 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-fg">
-              {multiple ? "Свой жанр или смесь жанров" : "Свой формат"}
-            </p>
-            <p className="mt-0.5 text-xs text-muted">
-              Опиши своими словами — AI допишет, конкретизирует или придумает с нуля.
-            </p>
-          </div>
-          {onAssist && (
-            <Button
-              onClick={onAssist}
-              disabled={assisting}
-              variant="primary"
-              size="sm"
-              type="button"
-            >
-              {assisting ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
-              {custom.trim() || value ? `Доработать ${assistKind} с AI` : `Сгенерировать ${assistKind}`}
-            </Button>
-          )}
-        </div>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-          <input
-            value={custom}
-            onChange={(event) => setCustom(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addCustom();
-              }
-            }}
-            className="min-h-12 flex-1 rounded-2xl border border-line/15 bg-surface px-4 text-fg outline-none transition focus:border-accent"
-            placeholder={
-              multiple
-                ? "Например: романтика + хоррор + школа магии"
-                : "Например: аниме-сериал, дневник, интерактивная манга…"
+      <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-accent/25 bg-accent/8 p-2 sm:flex-nowrap">
+        <input
+          value={custom}
+          onChange={(event) => setCustom(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              addCustom();
             }
-          />
-          <Button onClick={addCustom} variant="secondary" size="md" type="button">
-            Добавить
+          }}
+          className="h-10 min-w-0 flex-1 rounded-xl border border-line/15 bg-surface px-3 text-sm text-fg outline-none transition focus:border-accent"
+          placeholder={
+            multiple
+              ? "Свой жанр или смесь: романтика + хоррор + школа магии"
+              : "Свой формат: аниме-сериал, дневник, интерактивная манга…"
+          }
+        />
+        <Button onClick={addCustom} variant="secondary" size="sm" type="button">
+          Добавить
+        </Button>
+        {onAssist && (
+          <Button
+            onClick={onAssist}
+            disabled={assisting}
+            variant="primary"
+            size="sm"
+            type="button"
+          >
+            {assisting ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+            {custom.trim() || value ? `Доработать с AI` : `Сгенерировать с AI`}
           </Button>
-        </div>
+        )}
       </div>
     </>
   );
@@ -540,101 +522,112 @@ function TextStep({
 
   return (
     <>
-      <h2 className="font-serif text-3xl font-semibold md:text-4xl">{title}</h2>
-      <div className={cn("mt-6 grid gap-5", preview ? "lg:grid-cols-[1fr_240px]" : "")}> 
-        <div>
-          <textarea
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder={placeholder}
-            className="h-[160px] w-full resize-none rounded-3xl border border-line/15 bg-surface-2/40 p-5 leading-7 text-fg outline-none transition focus:border-accent"
-          />
+      <h2 className="font-serif text-2xl font-semibold md:text-3xl">{title}</h2>
 
-          {tones && (
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
-                Тон роли
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {tones.map((tone) => {
-                  const active = value.startsWith(`${tone.label}:`);
-                  return (
-                    <button
-                      key={tone.id}
-                      type="button"
-                      onClick={() => applyTone(tone)}
-                      className={cn(
-                        "group relative overflow-hidden rounded-2xl border px-4 py-2 text-left transition duration-200",
-                        active
-                          ? "border-accent/70 bg-accent/15"
-                          : "border-line/15 bg-surface-2/40 hover:border-line/30"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "absolute inset-0 bg-gradient-to-br opacity-20 transition group-hover:opacity-30",
-                          tone.gradient
-                        )}
-                      />
-                      <span className="relative block text-sm font-medium text-fg">{tone.label}</span>
-                      <span className="relative block text-[11px] text-muted">{tone.description}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {ideas && ideas.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
-                <Lightbulb size={12} className="text-ember" /> Идеи для вдохновения
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {ideas.map((idea) => (
-                  <button
-                    key={idea}
-                    type="button"
-                    onClick={() => onChange(idea)}
-                    className="rounded-full border border-line/15 bg-surface-2/40 px-3 py-1.5 text-left text-xs text-muted transition duration-200 hover:border-accent/40 hover:text-fg"
-                  >
-                    {idea}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {onAssist && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-accent/25 bg-accent/12 px-4 py-3">
-              <p className="flex-1 text-sm leading-6 text-accent-ring">{assistLabel}</p>
-              <Button onClick={onAssist} disabled={assisting} variant="primary" size="sm" type="button">
-                {assisting ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
-                {value.trim() ? "Доработать с AI" : "Сгенерировать с AI"}
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {preview && <div className="lg:sticky lg:top-4 lg:self-start">{preview}</div>}
+      <div className={cn("mt-5 grid gap-4", preview ? "lg:grid-cols-[1fr_260px]" : "")}>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="h-[160px] w-full resize-none rounded-3xl border border-line/15 bg-surface-2/40 p-5 leading-7 text-fg outline-none transition focus:border-accent"
+        />
+        {preview && <div className="h-[160px]">{preview}</div>}
       </div>
+
+      {tones && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
+            Тон роли
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {tones.map((tone) => {
+              const active = value.startsWith(`${tone.label}:`);
+              return (
+                <button
+                  key={tone.id}
+                  type="button"
+                  onClick={() => applyTone(tone)}
+                  className={cn(
+                    "group relative overflow-hidden rounded-2xl border px-3 py-2 text-left transition duration-200",
+                    active
+                      ? "border-accent/70 bg-accent/15"
+                      : "border-line/15 bg-surface-2/40 hover:border-line/30"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute inset-0 bg-gradient-to-br opacity-20 transition group-hover:opacity-30",
+                      tone.gradient
+                    )}
+                  />
+                  <span className="relative block text-sm font-medium text-fg">{tone.label}</span>
+                  <span className="relative block text-[11px] text-muted">{tone.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {ideas && ideas.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
+            <Lightbulb size={12} className="text-ember" /> Идеи для вдохновения
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {ideas.map((idea) => (
+              <button
+                key={idea}
+                type="button"
+                onClick={() => onChange(idea)}
+                className="rounded-full border border-line/15 bg-surface-2/40 px-3 py-1.5 text-left text-xs text-muted transition duration-200 hover:border-accent/40 hover:text-fg"
+              >
+                {idea}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {onAssist && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-accent/25 bg-accent/12 px-4 py-3">
+          <p className="flex-1 text-sm leading-6 text-accent-ring">{assistLabel}</p>
+          <Button onClick={onAssist} disabled={assisting} variant="primary" size="sm" type="button">
+            {assisting ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+            {value.trim() ? "Доработать с AI" : "Сгенерировать с AI"}
+          </Button>
+        </div>
+      )}
     </>
   );
 }
 
 function CharacterPreview({ text }: { text: string }) {
   const trimmed = text.trim();
-  const firstLine = trimmed.split(/\n|\.|,/).map((s) => s.trim()).filter(Boolean)[0] ?? "";
-  const name = firstLine.split(/\s—|:|–/)[0]?.trim() || "Без имени";
-  const initial = name.charAt(0).toUpperCase() || "?";
-  const summary = trimmed
-    ? trimmed.length > 200
-      ? `${trimmed.slice(0, 200)}…`
-      : trimmed
-    : "Здесь появится живая карточка героя — имя, роль и краткое описание из текста выше.";
+  const lines = trimmed.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const firstLine = lines[0] ?? "";
+  const sepMatch = firstLine.match(/^(.+?)\s*(?:—|–|-|:|,)\s*(.+)$/);
+
+  let name = "Без имени";
+  let descPrefix = "";
+  if (sepMatch) {
+    name = sepMatch[1].trim() || "Без имени";
+    descPrefix = sepMatch[2].trim();
+  } else if (firstLine) {
+    name = firstLine;
+  }
+
+  const restLines = lines.slice(1).join("\n");
+  const description = [descPrefix, restLines].filter(Boolean).join("\n").trim();
+  const initial = (name === "Без имени" ? "?" : name.charAt(0).toUpperCase()) || "?";
+  const summary = description
+    ? description.length > 200
+      ? `${description.slice(0, 200)}…`
+      : description
+    : "Здесь появится описание — допиши через «—», «:» или с новой строки.";
 
   return (
-    <div className="glass relative overflow-hidden rounded-3xl border border-line/15 p-5">
+    <div className="glass relative flex h-full flex-col overflow-hidden rounded-3xl border border-line/15 p-5">
       <div className="ambient-grid opacity-15" />
       <p className="relative text-[10px] uppercase tracking-[0.22em] text-accent-ring/85">
         Превью персонажа
@@ -648,7 +641,14 @@ function CharacterPreview({ text }: { text: string }) {
           <p className="text-[11px] text-subtle">появится в этой истории</p>
         </div>
       </div>
-      <p className="relative mt-4 text-sm leading-6 text-muted">{summary}</p>
+      <p
+        className={cn(
+          "relative mt-3 text-sm leading-6",
+          description ? "text-muted" : "text-subtle italic"
+        )}
+      >
+        {summary}
+      </p>
     </div>
   );
 }
