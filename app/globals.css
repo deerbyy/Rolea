@@ -325,21 +325,6 @@ body[data-chat-full="1"] .rolea-main {
 
 .interactive-glow {
   position: relative;
-  overflow: hidden;
-}
-
-.interactive-glow::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  pointer-events: none;
-  background: linear-gradient(110deg, transparent 12%, rgb(255 255 255 / 0.22) 42%, transparent 58%);
-  transform: translateX(-120%);
-  transition: transform 620ms ease;
-}
-
-.interactive-glow:hover::after {
-  transform: translateX(120%);
 }
 
 .pulse-ring { position: relative; }
