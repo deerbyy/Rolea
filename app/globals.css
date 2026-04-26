@@ -208,6 +208,10 @@ button {
   padding-bottom: 0;
 }
 
+body[data-chat-locked="1"] .rolea-main {
+  overflow: hidden;
+}
+
 body[data-chat-full="1"] .rolea-main {
   overflow: hidden;
 }

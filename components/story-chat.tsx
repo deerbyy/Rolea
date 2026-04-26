@@ -2,19 +2,27 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AtSign,
   BookOpen,
+  CloudFog,
+  Compass,
   Feather,
   Globe2,
   Loader2,
+  Map as MapIcon,
+  MapPin,
   Maximize2,
   Minimize2,
+  Moon,
+  Pin,
+  Plus,
   RefreshCcw,
   Send,
   Sparkles,
   Users
 } from "lucide-react";
 import { demoCharacters, initialMessages } from "@/lib/demo-data";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, Character } from "@/lib/types";
 import { useStories } from "@/lib/stories-store";
 import { cn } from "@/lib/cn";
 
@@ -92,6 +100,24 @@ export function StoryChat({ storyId }: { storyId: string }) {
       return () => document.body.removeAttribute("data-chat-full");
     }
   }, [isFull]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.setAttribute("data-chat-locked", "1");
+    return () => document.body.removeAttribute("data-chat-locked");
+  }, []);
+
+  function mention(name: string) {
+    const tag = `@${name} `;
+    setInput((current) => (current.startsWith(tag) ? current : `${tag}${current}`));
+    requestAnimationFrame(() => {
+      const node = inputRef.current;
+      if (!node) return;
+      node.focus();
+      const value = node.value;
+      node.setSelectionRange(value.length, value.length);
+    });
+  }
 
   async function send(action: string, replaceLastReply = false) {
     const trimmed = action.trim();
@@ -238,8 +264,8 @@ export function StoryChat({ storyId }: { storyId: string }) {
       <section
         className="glass reveal-up flex flex-col overflow-hidden rounded-3xl"
         style={{
-          height: isFull ? "calc(100dvh - 100px)" : "calc(100vh - 132px)",
-          minHeight: isFull ? "320px" : "620px",
+          height: isFull ? "calc(100dvh - 100px)" : "calc(100dvh - 140px)",
+          minHeight: "320px",
           transition: `height 520ms ${easing}, min-height 520ms ${easing}`,
         }}
       >
@@ -360,58 +386,82 @@ export function StoryChat({ storyId }: { storyId: string }) {
       <aside
         aria-hidden={isFull}
         className={cn(
-          "reveal-up reveal-delay-1 space-y-4 overflow-hidden",
+          "scrollbar-thin reveal-up reveal-delay-1 space-y-4 overflow-y-auto overflow-x-hidden pr-1",
           isFull && "pointer-events-none"
         )}
         style={{
+          height: isFull ? "calc(100dvh - 100px)" : "calc(100dvh - 140px)",
           opacity: isFull ? 0 : 1,
           transform: isFull ? "translateX(24px) scale(0.96)" : "translateX(0) scale(1)",
           transformOrigin: "top right",
-          transition: `opacity 280ms ease, transform 520ms ${easing}`,
+          transition: `opacity 280ms ease, transform 520ms ${easing}, height 520ms ${easing}`,
         }}
       >
-        <div className="story-card-bg floating-panel min-h-[260px] rounded-3xl border border-line/15 p-5">
-          <div className="flex h-full min-h-[220px] flex-col justify-end">
-            <h2 className="font-serif text-3xl text-white">{story.title}</h2>
-            <p className="mt-2 text-sm text-white/80">{story.summary}</p>
+        <Panel icon={Compass} title="Сцена">
+          <div className="space-y-4">
+            <div>
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="font-semibold text-accent-ring">Глава {story.chapter} · {story.mood}</span>
+                <span className="text-subtle">{story.chapter} / 5</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-3/60">
+                <div
+                  className="progress-shine h-full rounded-full bg-gradient-to-r from-accent to-ember"
+                  style={{ width: `${Math.min(100, (story.chapter / 5) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <SceneChip icon={MapPin} label="Библиотека" />
+              <SceneChip icon={Moon} label="Ночь" />
+              <SceneChip icon={CloudFog} label={story.mood} />
+            </div>
           </div>
-        </div>
+        </Panel>
 
         <Panel icon={Users} title="Участники">
-          <div className="space-y-3">
-            {demoCharacters.map((character) => (
-              <div
+          <div className="space-y-2">
+            {demoCharacters.map((character, index) => (
+              <CharacterRow
                 key={character.id}
-                className="hover-lift flex items-center gap-3 rounded-2xl border border-line/15 bg-surface-2/40 p-3"
-              >
-                <span
-                  className={cn(
-                    "grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-glow",
-                    characterPalette[character.name] ?? "from-accent via-fuchsia-500 to-ember"
-                  )}
-                >
-                  {initialOf(character.name)}
-                </span>
-                <div className="min-w-0">
-                  <p className="font-semibold">{character.name}</p>
-                  <p className="truncate text-xs text-accent-ring/90">{character.role}</p>
-                </div>
-              </div>
+                character={character}
+                paletteClass={
+                  characterPalette[character.name] ?? "from-accent via-fuchsia-500 to-ember"
+                }
+                active={index < 2}
+                onMention={() => mention(character.name)}
+              />
             ))}
           </div>
         </Panel>
 
-        <Panel icon={Globe2} title="Мир">
-          <p className="text-sm leading-6 text-muted">
-            Весперия отвечает на решения героя: закрытые двери, чужие письма и тени меняются
-            по мере игры.
-          </p>
+        <Panel icon={Globe2} title="Локация">
+          <div className="space-y-3 text-sm">
+            <LocLine icon={MapPin} label="Старая библиотека Весперии" />
+            <LocLine icon={Moon} label="Глубокая ночь, 03:14" />
+            <LocLine icon={CloudFog} label="Туман и дрожащий свет фонарей" />
+            <button
+              type="button"
+              className="hover-lift mt-1 inline-flex items-center gap-2 rounded-xl border border-line/15 bg-surface-2/40 px-3 py-2 text-xs text-muted transition hover:border-accent/40 hover:text-fg"
+            >
+              <MapIcon size={14} /> Открыть карту мира
+            </button>
+          </div>
         </Panel>
 
         <Panel icon={BookOpen} title="Память сцены">
-          <p className="text-sm leading-6 text-muted">
-            AI учитывает последние сообщения, роль пользователя, активных персонажей и базовые правила 16+.
-          </p>
+          <ul className="space-y-2 text-sm">
+            <MemoryRow text="Алиса вошла в старую библиотеку Весперии" />
+            <MemoryRow text="Лира узнала героя по голосу" />
+            <MemoryRow text="Кайр предупредил о приближении теней" />
+            <MemoryRow text="«Хроники Весперии» закрыты на засов" pinned />
+          </ul>
+          <button
+            type="button"
+            className="hover-lift mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line/20 bg-surface-2/30 px-3 py-2 text-xs text-muted transition hover:border-accent/40 hover:text-fg"
+          >
+            <Plus size={14} /> Закрепить из чата
+          </button>
         </Panel>
       </aside>
     </div>
@@ -509,5 +559,99 @@ function Panel({
       </div>
       {children}
     </section>
+  );
+}
+
+function SceneChip({ icon: Icon, label }: { icon: typeof MapPin; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line/15 bg-surface-2/40 px-2.5 py-1 text-xs text-muted">
+      <Icon size={12} className="text-accent-ring" />
+      {label}
+    </span>
+  );
+}
+
+function LocLine({ icon: Icon, label }: { icon: typeof MapPin; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-muted">
+      <Icon size={14} className="shrink-0 text-accent-ring" />
+      <span className="truncate">{label}</span>
+    </div>
+  );
+}
+
+function MemoryRow({ text, pinned = false }: { text: string; pinned?: boolean }) {
+  return (
+    <li className="group flex items-start gap-2 text-muted">
+      <span
+        className={cn(
+          "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
+          pinned ? "bg-ember shadow-[0_0_8px_rgba(251,191,36,0.6)]" : "bg-accent-ring/70"
+        )}
+      />
+      <span className="flex-1 leading-6">{text}</span>
+      <button
+        type="button"
+        aria-label={pinned ? "Открепить" : "Закрепить"}
+        className={cn(
+          "shrink-0 rounded-md p-1 transition",
+          pinned
+            ? "text-ember"
+            : "text-subtle opacity-0 hover:text-accent-ring group-hover:opacity-100"
+        )}
+      >
+        <Pin size={12} className={pinned ? "fill-ember/30" : ""} />
+      </button>
+    </li>
+  );
+}
+
+function CharacterRow({
+  character,
+  paletteClass,
+  active,
+  onMention
+}: {
+  character: Character;
+  paletteClass: string;
+  active: boolean;
+  onMention: () => void;
+}) {
+  return (
+    <div className="hover-lift group flex items-center gap-3 rounded-2xl border border-line/15 bg-surface-2/40 p-3">
+      <div className="relative shrink-0">
+        <span
+          className={cn(
+            "grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-glow",
+            paletteClass
+          )}
+        >
+          {initialOf(character.name)}
+        </span>
+        <span
+          className={cn(
+            "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface-2",
+            active ? "bg-emerald-400" : "bg-line/40"
+          )}
+          aria-hidden
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold">{character.name}</p>
+        <p className="truncate text-xs text-accent-ring/90">{character.role}</p>
+        <p className="mt-0.5 truncate text-[11px] text-subtle">
+          {active ? "Сейчас в сцене" : "Наблюдает"}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onMention}
+        title={`Обратиться к ${character.name}`}
+        aria-label={`Обратиться к ${character.name}`}
+        className="interactive-glow grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line/15 bg-surface-3/40 text-muted transition hover:-translate-y-0.5 hover:border-accent/40 hover:text-accent-ring"
+      >
+        <AtSign size={14} />
+      </button>
+    </div>
   );
 }
