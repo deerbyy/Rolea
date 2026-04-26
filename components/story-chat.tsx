@@ -207,22 +207,25 @@ export function StoryChat({ storyId }: { storyId: string }) {
     );
   }
 
+  const easing = "cubic-bezier(0.22, 0.61, 0.36, 1)";
+
   return (
     <div
-      className={cn(
-        "mx-auto gap-5",
-        isFull
-          ? "flex w-full px-2 py-2 md:px-4"
-          : "grid max-w-7xl px-4 py-8 md:px-8 xl:grid-cols-[minmax(0,1fr)_340px]",
-      )}
+      className="mx-auto grid gap-5 px-4 py-8 md:px-8 xl:grid-cols-[minmax(0,1fr)_var(--rolea-aside-w)]"
+      style={{
+        // CSS variable drives the right column width — animates via grid-template-columns
+        ["--rolea-aside-w" as string]: isFull ? "0px" : "340px",
+        maxWidth: isFull ? "100%" : "80rem",
+        transition: `grid-template-columns 520ms ${easing}, max-width 520ms ${easing}`,
+      }}
     >
       <section
-        className={cn(
-          "glass reveal-up flex flex-col overflow-hidden rounded-3xl",
-          isFull
-            ? "h-[calc(100vh-96px)] w-full min-h-[480px]"
-            : "h-[calc(100vh-132px)] min-h-[620px]",
-        )}
+        className="glass reveal-up flex flex-col overflow-hidden rounded-3xl"
+        style={{
+          height: isFull ? "calc(100vh - 96px)" : "calc(100vh - 132px)",
+          minHeight: isFull ? "480px" : "620px",
+          transition: `height 520ms ${easing}, min-height 520ms ${easing}`,
+        }}
       >
         <header className="shrink-0 border-b border-line/15 bg-surface/40 p-5 backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -338,8 +341,19 @@ export function StoryChat({ storyId }: { storyId: string }) {
         </footer>
       </section>
 
-      {!isFull && (
-      <aside className="reveal-up reveal-delay-1 space-y-4">
+      <aside
+        aria-hidden={isFull}
+        className={cn(
+          "reveal-up reveal-delay-1 space-y-4 overflow-hidden",
+          isFull && "pointer-events-none"
+        )}
+        style={{
+          opacity: isFull ? 0 : 1,
+          transform: isFull ? "translateX(24px) scale(0.96)" : "translateX(0) scale(1)",
+          transformOrigin: "top right",
+          transition: `opacity 280ms ease, transform 520ms ${easing}`,
+        }}
+      >
         <div className="story-card-bg floating-panel min-h-[260px] rounded-3xl border border-line/15 p-5">
           <div className="flex h-full min-h-[220px] flex-col justify-end">
             <h2 className="font-serif text-3xl text-white">{story.title}</h2>
@@ -384,7 +398,6 @@ export function StoryChat({ storyId }: { storyId: string }) {
           </p>
         </Panel>
       </aside>
-      )}
     </div>
   );
 }
