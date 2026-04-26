@@ -6,6 +6,8 @@ import {
   Feather,
   Globe2,
   Loader2,
+  Maximize2,
+  Minimize2,
   RefreshCcw,
   Send,
   Sparkles,
@@ -49,6 +51,7 @@ export function StoryChat({ storyId }: { storyId: string }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>(fallbackSuggestions);
+  const [isFull, setIsFull] = useState(false);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -72,6 +75,15 @@ export function StoryChat({ storyId }: { storyId: string }) {
     node.style.height = "0px";
     node.style.height = `${Math.min(node.scrollHeight, 200)}px`;
   }, [input]);
+
+  useEffect(() => {
+    if (!isFull) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFull(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isFull]);
 
   async function send(action: string, replaceLastReply = false) {
     const trimmed = action.trim();
@@ -196,8 +208,22 @@ export function StoryChat({ storyId }: { storyId: string }) {
   }
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-5 px-4 py-8 md:px-8 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <section className="glass reveal-up flex h-[calc(100vh-132px)] min-h-[620px] flex-col overflow-hidden rounded-3xl">
+    <div
+      className={cn(
+        "mx-auto gap-5",
+        isFull
+          ? "flex w-full px-2 py-2 md:px-4"
+          : "grid max-w-7xl px-4 py-8 md:px-8 xl:grid-cols-[minmax(0,1fr)_340px]",
+      )}
+    >
+      <section
+        className={cn(
+          "glass reveal-up flex flex-col overflow-hidden rounded-3xl",
+          isFull
+            ? "h-[calc(100vh-96px)] w-full min-h-[480px]"
+            : "h-[calc(100vh-132px)] min-h-[620px]",
+        )}
+      >
         <header className="shrink-0 border-b border-line/15 bg-surface/40 p-5 backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -212,18 +238,30 @@ export function StoryChat({ storyId }: { storyId: string }) {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={publish}
-              className={cn(
-                "interactive-glow rounded-2xl px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5",
-                published
-                  ? "border border-ember/40 bg-gradient-to-r from-accent/25 via-fuchsia-500/20 to-ember/30 text-ember-soft shadow-glow"
-                  : "border border-line/15 bg-surface-2/40 text-muted hover:text-fg"
-              )}
-            >
-              {published ? "Опубликовано" : "Опубликовать"}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsFull((value) => !value)}
+                aria-pressed={isFull}
+                aria-label={isFull ? "Свернуть из полноэкранного режима" : "Развернуть на весь экран"}
+                title={isFull ? "Свернуть (Esc)" : "На весь экран"}
+                className="interactive-glow grid h-11 w-11 place-items-center rounded-2xl border border-line/15 bg-surface-2/40 text-muted transition hover:-translate-y-0.5 hover:border-accent/40 hover:text-fg"
+              >
+                {isFull ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              </button>
+              <button
+                type="button"
+                onClick={publish}
+                className={cn(
+                  "interactive-glow rounded-2xl px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5",
+                  published
+                    ? "border border-ember/40 bg-gradient-to-r from-accent/25 via-fuchsia-500/20 to-ember/30 text-ember-soft shadow-glow"
+                    : "border border-line/15 bg-surface-2/40 text-muted hover:text-fg"
+                )}
+              >
+                {published ? "Опубликовано" : "Опубликовать"}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -300,6 +338,7 @@ export function StoryChat({ storyId }: { storyId: string }) {
         </footer>
       </section>
 
+      {!isFull && (
       <aside className="reveal-up reveal-delay-1 space-y-4">
         <div className="story-card-bg floating-panel min-h-[260px] rounded-3xl border border-line/15 p-5">
           <div className="flex h-full min-h-[220px] flex-col justify-end">
@@ -345,6 +384,7 @@ export function StoryChat({ storyId }: { storyId: string }) {
           </p>
         </Panel>
       </aside>
+      )}
     </div>
   );
 }
