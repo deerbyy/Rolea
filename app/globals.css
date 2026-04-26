@@ -216,6 +216,10 @@ body[data-chat-full="1"] .rolea-main {
   overflow: hidden;
 }
 
+body[data-onboarding="1"] .rolea-main {
+  overflow: hidden;
+}
+
 @media (max-width: 1023px) {
   .rolea-sidebar {
     transform: translateX(-100%);

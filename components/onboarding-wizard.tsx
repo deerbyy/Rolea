@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Check, Lightbulb, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,12 @@ export function OnboardingWizard() {
 
   const progress = useMemo(() => ((step + 1) / steps.length) * 100, [step]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.setAttribute("data-onboarding", "1");
+    return () => document.body.removeAttribute("data-onboarding");
+  }, []);
+
   function update<K extends keyof OnboardingDraft>(key: K, value: OnboardingDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
@@ -165,8 +171,8 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-      <aside className="glass reveal-up overflow-hidden rounded-3xl p-6">
+    <div className="grid h-[calc(100dvh-140px)] gap-6 xl:grid-cols-[360px_1fr]">
+      <aside className="glass reveal-up relative overflow-y-auto rounded-3xl p-6">
         <div className="ambient-grid opacity-20" />
         <p className="relative text-sm uppercase tracking-[0.18em] text-accent-ring/90">Онбординг</p>
         {selectedTemplate && (
@@ -225,7 +231,8 @@ export function OnboardingWizard() {
         </div>
       </aside>
 
-      <section className="glass reveal-up reveal-delay-1 rounded-3xl p-6">
+      <section className="glass reveal-up reveal-delay-1 flex min-h-0 flex-col overflow-hidden rounded-3xl p-6">
+        <div className="flex-1 overflow-y-auto pr-1">
         <div key={step} className="message-enter">
           {step === 0 && (
             <ChoiceStep
@@ -259,7 +266,7 @@ export function OnboardingWizard() {
               onChange={(value) => update("world", value)}
               onAssist={() => assist("world")}
               assisting={assistingField === "world"}
-              assistLabel="AI может придумать мир с нуля или улучшить твой набросок. Мир будет относиться только к этой истории."
+              assistLabel="AI допишет атмосферу, законы и тайну этого мира."
               placeholder="Например: академия магии на краю ледяного моря…"
               ideas={worldIdeas}
             />
@@ -271,7 +278,7 @@ export function OnboardingWizard() {
               onChange={(value) => update("protagonist", value)}
               onAssist={() => assist("protagonist")}
               assisting={assistingField === "protagonist"}
-              assistLabel="AI поможет дописать характер, мотивацию, слабость и тайну персонажа именно для этой истории."
+              assistLabel="AI допишет характер, мотивацию и тайну героя."
               placeholder="Имя, роль, характер, тайна…"
               ideas={protagonistIdeas}
               preview={<CharacterPreview text={draft.protagonist} />}
@@ -284,37 +291,13 @@ export function OnboardingWizard() {
               onChange={(value) => update("userRole", value)}
               onAssist={() => assist("userRole")}
               assisting={assistingField === "userRole"}
-              assistLabel="AI поможет оформить твою роль, способности и первый конфликт, от которого начнётся сцена."
+              assistLabel="AI оформит роль, способности и завязку конфликта."
               placeholder="Главный герой, союзник, свидетель, антагонист…"
               ideas={userRoleIdeas}
               tones={userRoleTones}
             />
           )}
           {step === 5 && <ReviewStep draft={draft} onJump={(i) => setStep(i)} />}
-        </div>
-
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Button
-            onClick={() => setStep((current) => Math.max(0, current - 1))}
-            disabled={step === 0}
-            variant="secondary"
-            size="md"
-          >
-            Назад
-          </Button>
-          {step < steps.length - 1 ? (
-            <Button
-              onClick={() => setStep((current) => Math.min(steps.length - 1, current + 1))}
-              size="md"
-            >
-              Далее <ArrowRight size={18} />
-            </Button>
-          ) : (
-            <Button onClick={generate} disabled={loading} size="md">
-              {loading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
-              Получить первую сцену
-            </Button>
-          )}
         </div>
 
         {error && (
@@ -346,6 +329,32 @@ export function OnboardingWizard() {
             </Link>
           </div>
         )}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-3 border-t border-line/10 pt-4">
+          <Button
+            onClick={() => setStep((current) => Math.max(0, current - 1))}
+            disabled={step === 0}
+            variant="secondary"
+            size="md"
+          >
+            Назад
+          </Button>
+          {step < steps.length - 1 ? (
+            <Button
+              onClick={() => setStep((current) => Math.min(steps.length - 1, current + 1))}
+              size="md"
+            >
+              Далее <ArrowRight size={18} />
+            </Button>
+          ) : (
+            <Button onClick={generate} disabled={loading} size="md">
+              {loading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+              Получить первую сцену
+            </Button>
+          )}
+        </div>
+
       </section>
     </div>
   );
@@ -538,7 +547,7 @@ function TextStep({
             value={value}
             onChange={(event) => onChange(event.target.value)}
             placeholder={placeholder}
-            className="min-h-[220px] w-full resize-none rounded-3xl border border-line/15 bg-surface-2/40 p-5 leading-7 text-fg outline-none transition focus:-translate-y-0.5 focus:border-accent focus:shadow-glow"
+            className="h-[160px] w-full resize-none rounded-3xl border border-line/15 bg-surface-2/40 p-5 leading-7 text-fg outline-none transition focus:border-accent"
           />
 
           {tones && (
@@ -555,9 +564,9 @@ function TextStep({
                       type="button"
                       onClick={() => applyTone(tone)}
                       className={cn(
-                        "hover-lift group relative overflow-hidden rounded-2xl border px-4 py-2 text-left transition",
+                        "group relative overflow-hidden rounded-2xl border px-4 py-2 text-left transition duration-200",
                         active
-                          ? "border-accent/70 bg-accent/15 shadow-glow"
+                          ? "border-accent/70 bg-accent/15"
                           : "border-line/15 bg-surface-2/40 hover:border-line/30"
                       )}
                     >
@@ -587,7 +596,7 @@ function TextStep({
                     key={idea}
                     type="button"
                     onClick={() => onChange(idea)}
-                    className="hover-lift rounded-full border border-line/15 bg-surface-2/40 px-3 py-1.5 text-left text-xs text-muted transition hover:border-accent/40 hover:text-fg"
+                    className="rounded-full border border-line/15 bg-surface-2/40 px-3 py-1.5 text-left text-xs text-muted transition duration-200 hover:border-accent/40 hover:text-fg"
                   >
                     {idea}
                   </button>
@@ -597,11 +606,11 @@ function TextStep({
           )}
 
           {onAssist && (
-            <div className="mt-4 rounded-3xl border border-accent/25 bg-accent/12 p-4">
-              <p className="text-sm leading-6 text-accent-ring">{assistLabel}</p>
-              <Button onClick={onAssist} disabled={assisting} variant="primary" size="md" className="mt-3" type="button">
-                {assisting ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
-                {value.trim() ? "Улучшить с AI" : "Сгенерировать с AI"}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-accent/25 bg-accent/12 px-4 py-3">
+              <p className="flex-1 text-sm leading-6 text-accent-ring">{assistLabel}</p>
+              <Button onClick={onAssist} disabled={assisting} variant="primary" size="sm" type="button">
+                {assisting ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+                {value.trim() ? "Доработать с AI" : "Сгенерировать с AI"}
               </Button>
             </div>
           )}
