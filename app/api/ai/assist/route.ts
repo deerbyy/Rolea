@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { assistStoryField } from "@/lib/ai/gemini";
+import { assistStoryField, type AssistField } from "@/lib/ai/gemini";
 import { checkContentSafety } from "@/lib/safety";
 import type { OnboardingDraft } from "@/lib/types";
 
 type AssistBody = {
-  field: "world" | "protagonist" | "userRole";
+  field: AssistField;
   currentValue: string;
   draft: OnboardingDraft;
 };

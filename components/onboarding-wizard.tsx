@@ -3,12 +3,58 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Loader2, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Check, Lightbulb, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 import { demoTemplates, formats, genres } from "@/lib/demo-data";
 import type { AiSceneResponse, OnboardingDraft } from "@/lib/types";
 
-type AssistField = "world" | "protagonist" | "userRole";
+type AssistField = "world" | "protagonist" | "userRole" | "genre" | "format";
+
+const worldIdeas = [
+  "Город-библиотека под вечной луной, где двери открываются на тех, кто прочитал нужную книгу",
+  "Космостанция-колония, где сны экипажа транслируются в общий эфир",
+  "Подводный купол с садами и забытыми храмами, где время идёт назад"
+];
+
+const protagonistIdeas = [
+  "Хранительница запретной библиотеки, помнящая чужие сны",
+  "Бывший наёмник с эхом голоса погибшего брата в голове",
+  "Юный изобретатель, чьи механизмы оживают только ночью"
+];
+
+const userRoleIdeas = [
+  "Главный герой — детектив, читающий следы как страницы книги",
+  "Союзник героини, чья верность станет проверкой в финале",
+  "Свидетель, который медленно превращается в участника событий"
+];
+
+const userRoleTones: { id: string; label: string; description: string; gradient: string }[] = [
+  {
+    id: "mentor",
+    label: "Наставник",
+    description: "Ведёт героев, делится знаниями, прячет тайну",
+    gradient: "from-amber-300 via-ember to-orange-500"
+  },
+  {
+    id: "rival",
+    label: "Соперник",
+    description: "Идёт к той же цели — но своим путём",
+    gradient: "from-rose-400 via-fuchsia-500 to-purple-500"
+  },
+  {
+    id: "mystery",
+    label: "Загадка",
+    description: "Никто не понимает, на чьей стороне",
+    gradient: "from-indigo-400 via-accent to-fuchsia-500"
+  },
+  {
+    id: "shadow",
+    label: "Тень",
+    description: "Действует из-за кулис, влияет молча",
+    gradient: "from-slate-500 via-slate-700 to-slate-900"
+  }
+];
 
 const initialDraft: OnboardingDraft = {
   genre: "Фэнтези",
@@ -189,6 +235,9 @@ export function OnboardingWizard() {
               value={draft.genre}
               multiple
               onSelect={(value) => update("genre", value)}
+              onAssist={() => assist("genre")}
+              assisting={assistingField === "genre"}
+              assistKind="жанр"
             />
           )}
           {step === 1 && (
@@ -198,6 +247,9 @@ export function OnboardingWizard() {
               options={formats}
               value={draft.format}
               onSelect={(value) => update("format", value)}
+              onAssist={() => assist("format")}
+              assisting={assistingField === "format"}
+              assistKind="формат"
             />
           )}
           {step === 2 && (
@@ -209,6 +261,7 @@ export function OnboardingWizard() {
               assisting={assistingField === "world"}
               assistLabel="AI может придумать мир с нуля или улучшить твой набросок. Мир будет относиться только к этой истории."
               placeholder="Например: академия магии на краю ледяного моря…"
+              ideas={worldIdeas}
             />
           )}
           {step === 3 && (
@@ -220,6 +273,8 @@ export function OnboardingWizard() {
               assisting={assistingField === "protagonist"}
               assistLabel="AI поможет дописать характер, мотивацию, слабость и тайну персонажа именно для этой истории."
               placeholder="Имя, роль, характер, тайна…"
+              ideas={protagonistIdeas}
+              preview={<CharacterPreview text={draft.protagonist} />}
             />
           )}
           {step === 4 && (
@@ -231,6 +286,8 @@ export function OnboardingWizard() {
               assisting={assistingField === "userRole"}
               assistLabel="AI поможет оформить твою роль, способности и первый конфликт, от которого начнётся сцена."
               placeholder="Главный герой, союзник, свидетель, антагонист…"
+              ideas={userRoleIdeas}
+              tones={userRoleTones}
             />
           )}
           {step === 5 && <ReviewStep draft={draft} onJump={(i) => setStep(i)} />}
@@ -300,7 +357,10 @@ function ChoiceStep({
   options,
   value,
   multiple = false,
-  onSelect
+  onSelect,
+  onAssist,
+  assisting = false,
+  assistKind
 }: {
   title: string;
   description: string;
@@ -308,6 +368,9 @@ function ChoiceStep({
   value: string;
   multiple?: boolean;
   onSelect: (value: string) => void;
+  onAssist?: () => void;
+  assisting?: boolean;
+  assistKind: "жанр" | "формат";
 }) {
   const [custom, setCustom] = useState("");
   const selected = value
@@ -347,25 +410,66 @@ function ChoiceStep({
       <h2 className="font-serif text-3xl font-semibold md:text-4xl">{title}</h2>
       <p className="mt-3 text-muted">{description}</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => pick(option)}
-            className={`hover-lift rounded-2xl border p-5 text-left transition ${
-              selected.includes(option)
-                ? "border-accent/50 bg-accent/22 text-fg"
-                : "border-line/15 bg-surface-2/40 text-muted hover:text-fg"
-            }`}
-          >
-            {option}
-          </button>
-        ))}
+        {options.map((option) => {
+          const active = selected.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => pick(option)}
+              aria-pressed={active}
+              className={cn(
+                "hover-lift relative flex items-center gap-3 rounded-2xl border p-5 text-left transition",
+                active
+                  ? "border-accent/70 bg-accent/22 text-fg shadow-glow ring-1 ring-accent/40"
+                  : "border-line/15 bg-surface-2/30 text-muted hover:border-line/30 hover:bg-surface-2/50 hover:text-fg"
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-6 w-6 shrink-0 place-items-center rounded-full border transition",
+                  active
+                    ? "border-accent bg-accent text-accent-fg"
+                    : "border-line/25 bg-surface/60 text-transparent"
+                )}
+              >
+                <Check size={14} strokeWidth={3} />
+              </span>
+              <span className="font-medium">{option}</span>
+            </button>
+          );
+        })}
       </div>
-      <div className="mt-5 rounded-3xl border border-line/15 bg-surface-2/40 p-4">
-        <p className="text-sm text-muted">
-          {multiple ? "Свой жанр или смесь жанров" : "Свой формат"}
+
+      {value && (
+        <p className="mt-4 rounded-2xl border border-accent/30 bg-accent/12 px-3 py-2 text-xs text-accent-ring">
+          Выбрано: {value}
         </p>
+      )}
+
+      <div className="mt-5 rounded-3xl border border-accent/25 bg-accent/8 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-fg">
+              {multiple ? "Свой жанр или смесь жанров" : "Свой формат"}
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              Опиши своими словами — AI допишет, конкретизирует или придумает с нуля.
+            </p>
+          </div>
+          {onAssist && (
+            <Button
+              onClick={onAssist}
+              disabled={assisting}
+              variant="primary"
+              size="sm"
+              type="button"
+            >
+              {assisting ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+              {custom.trim() || value ? `Доработать ${assistKind} с AI` : `Сгенерировать ${assistKind}`}
+            </Button>
+          )}
+        </div>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <input
             value={custom}
@@ -383,11 +487,10 @@ function ChoiceStep({
                 : "Например: аниме-сериал, дневник, интерактивная манга…"
             }
           />
-          <Button onClick={addCustom} size="md">
+          <Button onClick={addCustom} variant="secondary" size="md" type="button">
             Добавить
           </Button>
         </div>
-        {value && <p className="mt-3 text-xs text-accent-ring">Выбрано: {value}</p>}
       </div>
     </>
   );
@@ -400,7 +503,10 @@ function TextStep({
   onAssist,
   assisting = false,
   assistLabel,
-  onChange
+  onChange,
+  ideas,
+  preview,
+  tones
 }: {
   title: string;
   value: string;
@@ -409,26 +515,132 @@ function TextStep({
   assisting?: boolean;
   assistLabel?: string;
   onChange: (value: string) => void;
+  ideas?: string[];
+  preview?: React.ReactNode;
+  tones?: { id: string; label: string; description: string; gradient: string }[];
 }) {
+  function applyTone(tone: { label: string; description: string }) {
+    const prefix = `${tone.label}: ${tone.description}.`;
+    if (!value.trim()) {
+      onChange(prefix);
+      return;
+    }
+    if (value.startsWith(prefix)) return;
+    onChange(`${prefix}\n\n${value}`);
+  }
+
   return (
     <>
       <h2 className="font-serif text-3xl font-semibold md:text-4xl">{title}</h2>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="mt-6 min-h-[220px] w-full resize-none rounded-3xl border border-line/15 bg-surface-2/40 p-5 leading-7 text-fg outline-none transition focus:-translate-y-0.5 focus:border-accent focus:shadow-glow"
-      />
-      {onAssist && (
-        <div className="mt-4 rounded-3xl border border-accent/25 bg-accent/12 p-4">
-          <p className="text-sm leading-6 text-accent-ring">{assistLabel}</p>
-          <Button onClick={onAssist} disabled={assisting} variant="primary" size="md" className="mt-3">
-            {assisting ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
-            {value.trim() ? "Улучшить с AI" : "Сгенерировать с AI"}
-          </Button>
+      <div className={cn("mt-6 grid gap-5", preview ? "lg:grid-cols-[1fr_240px]" : "")}> 
+        <div>
+          <textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            className="min-h-[220px] w-full resize-none rounded-3xl border border-line/15 bg-surface-2/40 p-5 leading-7 text-fg outline-none transition focus:-translate-y-0.5 focus:border-accent focus:shadow-glow"
+          />
+
+          {tones && (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
+                Тон роли
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {tones.map((tone) => {
+                  const active = value.startsWith(`${tone.label}:`);
+                  return (
+                    <button
+                      key={tone.id}
+                      type="button"
+                      onClick={() => applyTone(tone)}
+                      className={cn(
+                        "hover-lift group relative overflow-hidden rounded-2xl border px-4 py-2 text-left transition",
+                        active
+                          ? "border-accent/70 bg-accent/15 shadow-glow"
+                          : "border-line/15 bg-surface-2/40 hover:border-line/30"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute inset-0 bg-gradient-to-br opacity-20 transition group-hover:opacity-30",
+                          tone.gradient
+                        )}
+                      />
+                      <span className="relative block text-sm font-medium text-fg">{tone.label}</span>
+                      <span className="relative block text-[11px] text-muted">{tone.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {ideas && ideas.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
+                <Lightbulb size={12} className="text-ember" /> Идеи для вдохновения
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {ideas.map((idea) => (
+                  <button
+                    key={idea}
+                    type="button"
+                    onClick={() => onChange(idea)}
+                    className="hover-lift rounded-full border border-line/15 bg-surface-2/40 px-3 py-1.5 text-left text-xs text-muted transition hover:border-accent/40 hover:text-fg"
+                  >
+                    {idea}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {onAssist && (
+            <div className="mt-4 rounded-3xl border border-accent/25 bg-accent/12 p-4">
+              <p className="text-sm leading-6 text-accent-ring">{assistLabel}</p>
+              <Button onClick={onAssist} disabled={assisting} variant="primary" size="md" className="mt-3" type="button">
+                {assisting ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
+                {value.trim() ? "Улучшить с AI" : "Сгенерировать с AI"}
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+
+        {preview && <div className="lg:sticky lg:top-4 lg:self-start">{preview}</div>}
+      </div>
     </>
+  );
+}
+
+function CharacterPreview({ text }: { text: string }) {
+  const trimmed = text.trim();
+  const firstLine = trimmed.split(/\n|\.|,/).map((s) => s.trim()).filter(Boolean)[0] ?? "";
+  const name = firstLine.split(/\s—|:|–/)[0]?.trim() || "Без имени";
+  const initial = name.charAt(0).toUpperCase() || "?";
+  const summary = trimmed
+    ? trimmed.length > 200
+      ? `${trimmed.slice(0, 200)}…`
+      : trimmed
+    : "Здесь появится живая карточка героя — имя, роль и краткое описание из текста выше.";
+
+  return (
+    <div className="glass relative overflow-hidden rounded-3xl border border-line/15 p-5">
+      <div className="ambient-grid opacity-15" />
+      <p className="relative text-[10px] uppercase tracking-[0.22em] text-accent-ring/85">
+        Превью персонажа
+      </p>
+      <div className="relative mt-3 flex items-center gap-3">
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-accent via-fuchsia-500 to-ember text-lg font-semibold text-accent-fg">
+          {initial}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate font-serif text-lg leading-tight">{name}</p>
+          <p className="text-[11px] text-subtle">появится в этой истории</p>
+        </div>
+      </div>
+      <p className="relative mt-4 text-sm leading-6 text-muted">{summary}</p>
+    </div>
   );
 }
 

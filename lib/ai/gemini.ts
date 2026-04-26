@@ -173,22 +173,26 @@ export async function continueStory(messages: ChatMessage[], action: string) {
   return { ...fallback, narration: text };
 }
 
+export type AssistField = "world" | "protagonist" | "userRole" | "genre" | "format";
+
 export async function assistStoryField({
   field,
   currentValue,
   draft
 }: {
-  field: "world" | "protagonist" | "userRole";
+  field: AssistField;
   currentValue: string;
   draft: OnboardingDraft;
 }) {
-  const labels = {
+  const labels: Record<AssistField, string> = {
     world: "мир или локацию истории",
     protagonist: "ключевого персонажа истории",
-    userRole: "роль пользователя в истории"
+    userRole: "роль пользователя в истории",
+    genre: "жанр или микс жанров истории",
+    format: "формат подачи истории"
   };
 
-  const fallback = {
+  const fallback: Record<AssistField, string> = {
     world:
       currentValue.trim().length > 20
         ? `${currentValue.trim()}\n\nAI-дополнение: добавь одно правило мира, одну опасную локацию и одну тайну, которую персонажи пока не понимают. Мир должен работать только внутри этой истории и не переноситься в другие сюжеты.`
@@ -200,7 +204,23 @@ export async function assistStoryField({
     userRole:
       currentValue.trim().length > 20
         ? `${currentValue.trim()}\n\nAI-дополнение: опиши сильную сторону героя, внутренний конфликт и первое решение, которое сразу повлияет на сцену.`
-        : "Пользователь играет героя, который слышит слова старых книг. Его сила — замечать скрытые смыслы, а слабость — страх выбрать роль, из которой нельзя выйти."
+        : "Пользователь играет героя, который слышит слова старых книг. Его сила — замечать скрытые смыслы, а слабость — страх выбрать роль, из которой нельзя выйти.",
+    genre: currentValue.trim()
+      ? `${currentValue.trim()}, готическая мистика, медленный психологический хоррор`
+      : "Тёмное фэнтези с готическим хоррором и нотками детектива — туман, библиотеки, древние ритуалы",
+    format: currentValue.trim()
+      ? `${currentValue.trim()} с короткими главами, дневниковыми вставками и нелинейными воспоминаниями`
+      : "Атмосферная глава-квест: 3-5 сцен на сессию, акцент на диалогах и решениях, между главами — короткие письма и записи в дневник героя"
+  };
+
+  const constraints: Record<AssistField, string> = {
+    world: "Верни только улучшенный текст без markdown. 4-7 предложений.",
+    protagonist: "Верни только улучшенный текст без markdown. 4-7 предложений.",
+    userRole: "Верни только улучшенный текст без markdown. 4-7 предложений.",
+    genre:
+      "Верни ТОЛЬКО короткую строку (1-2 строки) — название жанра или микс из 2-4 жанров через запятую/плюс, без пояснений и markdown.",
+    format:
+      "Верни ТОЛЬКО короткую строку (1-2 строки) — название формата с уточнением ритма/структуры, без markdown."
   };
 
   const prompt = [
@@ -209,7 +229,8 @@ export async function assistStoryField({
     `Жанр: ${draft.genre}`,
     `Формат: ${draft.format}`,
     `Текущий текст пользователя: ${currentValue || "пусто"}`,
-    "Верни только улучшенный текст без markdown. Не делай его слишком длинным: 4-7 предложений. Важно: персонажи и мир относятся только к одной конкретной истории."
+    constraints[field],
+    "Важно: персонажи и мир относятся только к одной конкретной истории."
   ].join("\n");
 
   const text = await callGemini(prompt);
