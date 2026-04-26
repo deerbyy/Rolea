@@ -23,7 +23,8 @@ import {
   RefreshCcw,
   Send,
   Sparkles,
-  Users
+  Users,
+  X
 } from "lucide-react";
 import { demoCharacters, initialMessages } from "@/lib/demo-data";
 import type { ChatMessage, Character } from "@/lib/types";
@@ -40,6 +41,112 @@ const characterPalette: Record<string, string> = {
   Лира: "from-accent via-fuchsia-500 to-pink-400",
   Кайр: "from-ember via-amber-400 to-yellow-300",
   Rolea: "from-accent via-fuchsia-500 to-ember"
+};
+
+type LocationExit = {
+  to: string;
+  label: string;
+  hint: string;
+  locked?: boolean;
+};
+
+type Location = {
+  id: string;
+  name: string;
+  subtitle: string;
+  chips: { icon: typeof Moon; label: string }[];
+  exits: LocationExit[];
+};
+
+const locations: Record<string, Location> = {
+  library: {
+    id: "library",
+    name: "Старая библиотека Весперии",
+    subtitle: "Этаж 1 · Главный зал",
+    chips: [
+      { icon: Moon, label: "Ночь · 03:14" },
+      { icon: CloudFog, label: "Туман" },
+      { icon: Flame, label: "Свечи" }
+    ],
+    exits: [
+      { to: "basement", label: "Подвал библиотеки", hint: "Слышны шаги" },
+      { to: "upper", label: "Верхний ярус", hint: "Заперто", locked: true },
+      { to: "yard", label: "Двор и переулок", hint: "Оттуда пришли" }
+    ]
+  },
+  basement: {
+    id: "basement",
+    name: "Подвал библиотеки",
+    subtitle: "Глубокие архивы",
+    chips: [
+      { icon: Moon, label: "Глубокая ночь" },
+      { icon: CloudFog, label: "Сырость" },
+      { icon: Flame, label: "Один факел" }
+    ],
+    exits: [
+      { to: "library", label: "Главный зал", hint: "Откуда пришли" },
+      { to: "tunnel", label: "Тайный туннель", hint: "Запах сырости" }
+    ]
+  },
+  upper: {
+    id: "upper",
+    name: "Верхний ярус",
+    subtitle: "Запретные книги",
+    chips: [
+      { icon: Moon, label: "Лунный свет" },
+      { icon: CloudFog, label: "Сквозняк" },
+      { icon: Flame, label: "Тишина" }
+    ],
+    exits: [{ to: "library", label: "Главный зал", hint: "Откуда пришли" }]
+  },
+  yard: {
+    id: "yard",
+    name: "Двор и переулок",
+    subtitle: "За оградой Весперии",
+    chips: [
+      { icon: Moon, label: "Ночь" },
+      { icon: CloudFog, label: "Дождь" },
+      { icon: Flame, label: "Фонари" }
+    ],
+    exits: [
+      { to: "library", label: "Старая библиотека", hint: "Огни внутри" },
+      { to: "city", label: "Улицы Весперии", hint: "Тени за углом" }
+    ]
+  },
+  tunnel: {
+    id: "tunnel",
+    name: "Тайный туннель",
+    subtitle: "Под библиотекой",
+    chips: [
+      { icon: CloudFog, label: "Темнота" },
+      { icon: Flame, label: "Эхо" }
+    ],
+    exits: [{ to: "basement", label: "Подвал", hint: "Назад наверх" }]
+  },
+  city: {
+    id: "city",
+    name: "Улицы Весперии",
+    subtitle: "Старый квартал",
+    chips: [
+      { icon: Moon, label: "Ночь" },
+      { icon: CloudFog, label: "Дождь" },
+      { icon: Flame, label: "Шёпот толпы" }
+    ],
+    exits: [{ to: "yard", label: "Двор библиотеки", hint: "Назад к огням" }]
+  }
+};
+
+const initialMemories: MemoryItem[] = [
+  { id: "m1", text: "Алиса вошла в старую библиотеку Весперии", pinned: false },
+  { id: "m2", text: "Лира узнала героя по голосу", pinned: false },
+  { id: "m3", text: "Кайр предупредил о приближении теней", pinned: false },
+  { id: "m4", text: "«Хроники Весперии» закрыты на засов", pinned: true }
+];
+
+type MemoryItem = {
+  id: string;
+  text: string;
+  pinned: boolean;
 };
 
 function nowLabel() {
@@ -64,8 +171,14 @@ export function StoryChat({ storyId }: { storyId: string }) {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>(fallbackSuggestions);
   const [isFull, setIsFull] = useState(false);
+  const [currentLocId, setCurrentLocId] = useState<string>("library");
+  const [memories, setMemories] = useState<MemoryItem[]>(initialMemories);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const currentLocation = locations[currentLocId] ?? locations.library;
 
   const published = story?.status === "published";
 
@@ -121,6 +234,65 @@ export function StoryChat({ storyId }: { storyId: string }) {
       const value = node.value;
       node.setSelectionRange(value.length, value.length);
     });
+  }
+
+  function showToast(text: string) {
+    setToast(text);
+    window.setTimeout(() => {
+      setToast((current) => (current === text ? null : current));
+    }, 2600);
+  }
+
+  function travelTo(locId: string) {
+    const target = locations[locId];
+    if (!target) return;
+    if (locId === currentLocId) {
+      showToast("Вы уже здесь.");
+      return;
+    }
+    setCurrentLocId(locId);
+    setMemories((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        text: `Перешли в локацию: ${target.name}`,
+        pinned: false
+      }
+    ]);
+    setMapOpen(false);
+  }
+
+  function tryExit(exit: LocationExit) {
+    if (exit.locked) {
+      showToast(`«${exit.label}» — ${exit.hint.toLowerCase()}. Найди ключ или способ открыть.`);
+      return;
+    }
+    travelTo(exit.to);
+  }
+
+  function toggleMemoryPin(id: string) {
+    setMemories((current) =>
+      current.map((item) => (item.id === id ? { ...item, pinned: !item.pinned } : item))
+    );
+  }
+
+  function removeMemory(id: string) {
+    setMemories((current) => current.filter((item) => item.id !== id));
+  }
+
+  function pinMessageAsMemory(message: ChatMessage) {
+    const text =
+      message.kind === "user"
+        ? `Решение героя: ${message.content}`
+        : message.kind === "narration"
+          ? message.content
+          : `${message.author}: ${message.content}`;
+    setMemories((current) => [
+      ...current,
+      { id: crypto.randomUUID(), text, pinned: true }
+    ]);
+    setPickerOpen(false);
+    showToast("Закреплено в памяти сцены.");
   }
 
   async function send(action: string, replaceLastReply = false) {
@@ -464,16 +636,16 @@ export function StoryChat({ storyId }: { storyId: string }) {
                   Текущая сцена
                 </span>
                 <p className="font-serif text-lg leading-tight text-white">
-                  Старая библиотека Весперии
+                  {currentLocation.name}
                 </p>
-                <span className="text-xs text-white/70">Этаж 1 · Главный зал</span>
+                <span className="text-xs text-white/70">{currentLocation.subtitle}</span>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <SceneChip icon={Moon} label="Ночь · 03:14" />
-              <SceneChip icon={CloudFog} label="Туман" />
-              <SceneChip icon={Flame} label="Свечи" />
+              {currentLocation.chips.map((chip) => (
+                <SceneChip key={chip.label} icon={chip.icon} label={chip.label} />
+              ))}
             </div>
 
             <div>
@@ -481,14 +653,28 @@ export function StoryChat({ storyId }: { storyId: string }) {
                 Выходы
               </p>
               <div className="space-y-1.5">
-                <ExitRow label="Подвал библиотеки" hint="Слышны шаги" />
-                <ExitRow label="Верхний ярус" hint="Заперто" muted />
-                <ExitRow label="Двор и переулок" hint="Оттуда пришли" />
+                {currentLocation.exits.map((exit) => (
+                  <ExitRow
+                    key={exit.to}
+                    label={exit.label}
+                    hint={exit.hint}
+                    muted={exit.locked}
+                    locked={exit.locked}
+                    onClick={() => tryExit(exit)}
+                  />
+                ))}
               </div>
             </div>
 
+            {toast && (
+              <div className="rounded-xl border border-accent/30 bg-accent/12 px-3 py-2 text-xs text-accent-ring">
+                {toast}
+              </div>
+            )}
+
             <button
               type="button"
+              onClick={() => setMapOpen(true)}
               className="hover-lift inline-flex w-full items-center justify-center gap-2 rounded-xl border border-line/15 bg-surface-2/40 px-3 py-2 text-xs text-muted transition hover:border-accent/40 hover:text-fg"
             >
               <MapIcon size={14} /> Открыть карту мира
@@ -498,19 +684,89 @@ export function StoryChat({ storyId }: { storyId: string }) {
 
         <Panel icon={BookOpen} title="Память сцены">
           <ul className="space-y-2 text-sm">
-            <MemoryRow text="Алиса вошла в старую библиотеку Весперии" />
-            <MemoryRow text="Лира узнала героя по голосу" />
-            <MemoryRow text="Кайр предупредил о приближении теней" />
-            <MemoryRow text="«Хроники Весперии» закрыты на засов" pinned />
+            {memories.map((item) => (
+              <MemoryRow
+                key={item.id}
+                text={item.text}
+                pinned={item.pinned}
+                onTogglePin={() => toggleMemoryPin(item.id)}
+                onRemove={() => removeMemory(item.id)}
+              />
+            ))}
+            {memories.length === 0 && (
+              <li className="text-xs text-subtle">Пока нет закреплённых фактов сцены.</li>
+            )}
           </ul>
           <button
             type="button"
+            onClick={() => setPickerOpen(true)}
             className="hover-lift mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line/20 bg-surface-2/30 px-3 py-2 text-xs text-muted transition hover:border-accent/40 hover:text-fg"
           >
             <Plus size={14} /> Закрепить из чата
           </button>
         </Panel>
       </aside>
+
+      {mapOpen && (
+        <Modal title="Карта мира" onClose={() => setMapOpen(false)}>
+          <p className="mb-4 text-sm text-muted">
+            Выбери локацию — герой переместится туда, факт появится в памяти сцены.
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {Object.values(locations).map((loc) => (
+              <button
+                key={loc.id}
+                type="button"
+                onClick={() => travelTo(loc.id)}
+                className={cn(
+                  "hover-lift group flex flex-col items-start gap-1 rounded-2xl border p-3 text-left transition",
+                  loc.id === currentLocId
+                    ? "border-accent/60 bg-accent/15"
+                    : "border-line/15 bg-surface-2/40 hover:border-accent/40"
+                )}
+              >
+                <span className="flex items-center gap-2 font-serif text-base">
+                  <MapPin size={14} className="text-accent-ring" />
+                  {loc.name}
+                </span>
+                <span className="text-xs text-subtle">{loc.subtitle}</span>
+                {loc.id === currentLocId && (
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-accent-ring">
+                    Сейчас здесь
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {pickerOpen && (
+        <Modal title="Закрепить из чата" onClose={() => setPickerOpen(false)}>
+          <p className="mb-4 text-sm text-muted">
+            Выбери сообщение из ленты — оно превратится в закреплённый факт памяти сцены.
+          </p>
+          {messages.length === 0 ? (
+            <p className="text-xs text-subtle">В чате пока нет сообщений.</p>
+          ) : (
+            <div className="space-y-2">
+              {[...messages].slice(-8).reverse().map((message) => (
+                <button
+                  key={message.id}
+                  type="button"
+                  onClick={() => pinMessageAsMemory(message)}
+                  className="hover-lift block w-full rounded-2xl border border-line/15 bg-surface-2/40 px-3 py-2 text-left text-sm text-fg transition hover:border-accent/40"
+                >
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-subtle">
+                    {message.author} · {message.timestamp}
+                  </p>
+                  <p className="mt-1 line-clamp-3 text-sm leading-6">{message.content}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </Modal>
+      )}
     </div>
   );
 }
@@ -621,15 +877,21 @@ function SceneChip({ icon: Icon, label }: { icon: typeof MapPin; label: string }
 function ExitRow({
   label,
   hint,
-  muted = false
+  muted = false,
+  locked = false,
+  onClick
 }: {
   label: string;
   hint?: string;
   muted?: boolean;
+  locked?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
+      aria-label={`Выйти: ${label}`}
       className={cn(
         "hover-lift group flex w-full items-center gap-3 rounded-xl border border-line/10 bg-surface-2/30 px-3 py-2 text-left text-sm transition hover:border-accent/40 hover:bg-surface-2/50",
         muted && "opacity-60"
@@ -638,7 +900,11 @@ function ExitRow({
       <Compass size={14} className="shrink-0 text-accent-ring" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-fg">{label}</p>
-        {hint && <p className="truncate text-[11px] text-subtle">{hint}</p>}
+        {hint && (
+          <p className={cn("truncate text-[11px]", locked ? "text-ember" : "text-subtle")}>
+            {hint}
+          </p>
+        )}
       </div>
       <ChevronRight
         size={14}
@@ -648,7 +914,60 @@ function ExitRow({
   );
 }
 
-function MemoryRow({ text, pinned = false }: { text: string; pinned?: boolean }) {
+function Modal({
+  title,
+  onClose,
+  children
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center px-4">
+      <button
+        type="button"
+        aria-label="Закрыть"
+        onClick={onClose}
+        className="absolute inset-0 bg-bg/70 backdrop-blur-sm"
+      />
+      <div className="glass relative z-10 w-full max-w-lg rounded-3xl border border-line/15 p-6 shadow-glow">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-serif text-2xl">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть"
+            className="grid h-9 w-9 place-items-center rounded-xl border border-line/15 bg-surface-2/40 text-muted transition hover:border-accent/40 hover:text-fg"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function MemoryRow({
+  text,
+  pinned = false,
+  onTogglePin,
+  onRemove
+}: {
+  text: string;
+  pinned?: boolean;
+  onTogglePin?: () => void;
+  onRemove?: () => void;
+}) {
   return (
     <li className="group flex items-start gap-2 text-muted">
       <span
@@ -658,18 +977,33 @@ function MemoryRow({ text, pinned = false }: { text: string; pinned?: boolean })
         )}
       />
       <span className="flex-1 leading-6">{text}</span>
-      <button
-        type="button"
-        aria-label={pinned ? "Открепить" : "Закрепить"}
-        className={cn(
-          "shrink-0 rounded-md p-1 transition",
-          pinned
-            ? "text-ember"
-            : "text-subtle opacity-0 hover:text-accent-ring group-hover:opacity-100"
+      <div className="flex shrink-0 items-center gap-1">
+        <button
+          type="button"
+          onClick={onTogglePin}
+          aria-label={pinned ? "Открепить" : "Закрепить"}
+          title={pinned ? "Открепить" : "Закрепить"}
+          className={cn(
+            "rounded-md p-1 transition",
+            pinned
+              ? "text-ember hover:text-ember/70"
+              : "text-subtle opacity-0 hover:text-accent-ring group-hover:opacity-100"
+          )}
+        >
+          <Pin size={12} className={pinned ? "fill-ember/30" : ""} />
+        </button>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Удалить"
+            title="Удалить"
+            className="rounded-md p-1 text-subtle opacity-0 transition hover:text-fg group-hover:opacity-100"
+          >
+            <X size={12} />
+          </button>
         )}
-      >
-        <Pin size={12} className={pinned ? "fill-ember/30" : ""} />
-      </button>
+      </div>
     </li>
   );
 }
