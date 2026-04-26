@@ -4,14 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AtSign,
   BookOpen,
+  ChevronRight,
   CloudFog,
   Compass,
+  EyeOff,
   Feather,
+  Flame,
   Globe2,
   Loader2,
   Map as MapIcon,
   MapPin,
   Maximize2,
+  MessageSquare,
   Minimize2,
   Moon,
   Pin,
@@ -428,21 +432,64 @@ export function StoryChat({ storyId }: { storyId: string }) {
                 paletteClass={
                   characterPalette[character.name] ?? "from-accent via-fuchsia-500 to-ember"
                 }
-                active={index < 2}
+                presence={
+                  index === 0 ? "speaking" : index === 1 ? "present" : "watching"
+                }
                 onMention={() => mention(character.name)}
               />
             ))}
+            <CharacterRow
+              character={{
+                id: "shade",
+                name: "Тени",
+                role: "Антагонист",
+                traits: [],
+                description: "",
+                storyTitle: story.title,
+                status: "Прячутся"
+              }}
+              paletteClass="from-slate-500 via-slate-600 to-slate-700"
+              presence="away"
+              onMention={() => mention("Тени")}
+            />
           </div>
         </Panel>
 
         <Panel icon={Globe2} title="Локация">
-          <div className="space-y-3 text-sm">
-            <LocLine icon={MapPin} label="Старая библиотека Весперии" />
-            <LocLine icon={Moon} label="Глубокая ночь, 03:14" />
-            <LocLine icon={CloudFog} label="Туман и дрожащий свет фонарей" />
+          <div className="space-y-4">
+            <div className="story-card-bg relative overflow-hidden rounded-2xl border border-line/15">
+              <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/40 to-transparent" />
+              <div className="relative flex flex-col gap-1 p-4">
+                <span className="text-[10px] uppercase tracking-[0.22em] text-accent-ring/85">
+                  Текущая сцена
+                </span>
+                <p className="font-serif text-lg leading-tight text-white">
+                  Старая библиотека Весперии
+                </p>
+                <span className="text-xs text-white/70">Этаж 1 · Главный зал</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <SceneChip icon={Moon} label="Ночь · 03:14" />
+              <SceneChip icon={CloudFog} label="Туман" />
+              <SceneChip icon={Flame} label="Свечи" />
+            </div>
+
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-subtle">
+                Выходы
+              </p>
+              <div className="space-y-1.5">
+                <ExitRow label="Подвал библиотеки" hint="Слышны шаги" />
+                <ExitRow label="Верхний ярус" hint="Заперто" muted />
+                <ExitRow label="Двор и переулок" hint="Оттуда пришли" />
+              </div>
+            </div>
+
             <button
               type="button"
-              className="hover-lift mt-1 inline-flex items-center gap-2 rounded-xl border border-line/15 bg-surface-2/40 px-3 py-2 text-xs text-muted transition hover:border-accent/40 hover:text-fg"
+              className="hover-lift inline-flex w-full items-center justify-center gap-2 rounded-xl border border-line/15 bg-surface-2/40 px-3 py-2 text-xs text-muted transition hover:border-accent/40 hover:text-fg"
             >
               <MapIcon size={14} /> Открыть карту мира
             </button>
@@ -571,12 +618,33 @@ function SceneChip({ icon: Icon, label }: { icon: typeof MapPin; label: string }
   );
 }
 
-function LocLine({ icon: Icon, label }: { icon: typeof MapPin; label: string }) {
+function ExitRow({
+  label,
+  hint,
+  muted = false
+}: {
+  label: string;
+  hint?: string;
+  muted?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-2 text-muted">
-      <Icon size={14} className="shrink-0 text-accent-ring" />
-      <span className="truncate">{label}</span>
-    </div>
+    <button
+      type="button"
+      className={cn(
+        "hover-lift group flex w-full items-center gap-3 rounded-xl border border-line/10 bg-surface-2/30 px-3 py-2 text-left text-sm transition hover:border-accent/40 hover:bg-surface-2/50",
+        muted && "opacity-60"
+      )}
+    >
+      <Compass size={14} className="shrink-0 text-accent-ring" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-fg">{label}</p>
+        {hint && <p className="truncate text-[11px] text-subtle">{hint}</p>}
+      </div>
+      <ChevronRight
+        size={14}
+        className="shrink-0 text-subtle transition group-hover:translate-x-0.5 group-hover:text-accent-ring"
+      />
+    </button>
   );
 }
 
@@ -606,24 +674,78 @@ function MemoryRow({ text, pinned = false }: { text: string; pinned?: boolean })
   );
 }
 
+type Presence = "present" | "speaking" | "watching" | "away";
+
+const presenceMeta: Record<
+  Presence,
+  {
+    label: string;
+    dot: string;
+    pill: string;
+    text: string;
+    icon: typeof MessageSquare | null;
+    pulse?: boolean;
+  }
+> = {
+  speaking: {
+    label: "Говорит",
+    dot: "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.7)]",
+    pill: "border-ember/40 bg-ember/15 text-ember-soft",
+    text: "Говорит сейчас",
+    icon: MessageSquare,
+    pulse: true
+  },
+  present: {
+    label: "В сцене",
+    dot: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.55)]",
+    pill: "border-emerald-400/30 bg-emerald-400/12 text-emerald-200",
+    text: "В сцене",
+    icon: null
+  },
+  watching: {
+    label: "Наблюдает",
+    dot: "bg-slate-300/80",
+    pill: "border-line/15 bg-surface-3/40 text-muted",
+    text: "Наблюдает",
+    icon: null
+  },
+  away: {
+    label: "Вне сцены",
+    dot: "bg-slate-600",
+    pill: "border-line/10 bg-surface-3/30 text-subtle",
+    text: "Вне сцены",
+    icon: EyeOff
+  }
+};
+
 function CharacterRow({
   character,
   paletteClass,
-  active,
+  presence,
   onMention
 }: {
   character: Character;
   paletteClass: string;
-  active: boolean;
+  presence: Presence;
   onMention: () => void;
 }) {
+  const meta = presenceMeta[presence];
+  const isAway = presence === "away";
+  const Icon = meta.icon;
+
   return (
-    <div className="hover-lift group flex items-center gap-3 rounded-2xl border border-line/15 bg-surface-2/40 p-3">
+    <div
+      className={cn(
+        "hover-lift group flex items-center gap-3 rounded-2xl border border-line/15 bg-surface-2/40 p-3 transition",
+        isAway && "opacity-60"
+      )}
+    >
       <div className="relative shrink-0">
         <span
           className={cn(
             "grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-glow",
-            paletteClass
+            paletteClass,
+            isAway && "grayscale"
           )}
         >
           {initialOf(character.name)}
@@ -631,7 +753,8 @@ function CharacterRow({
         <span
           className={cn(
             "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface-2",
-            active ? "bg-emerald-400" : "bg-line/40"
+            meta.dot,
+            meta.pulse && "animate-pulse"
           )}
           aria-hidden
         />
@@ -639,9 +762,15 @@ function CharacterRow({
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{character.name}</p>
         <p className="truncate text-xs text-accent-ring/90">{character.role}</p>
-        <p className="mt-0.5 truncate text-[11px] text-subtle">
-          {active ? "Сейчас в сцене" : "Наблюдает"}
-        </p>
+        <span
+          className={cn(
+            "mt-1 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+            meta.pill
+          )}
+        >
+          {Icon && <Icon size={10} />}
+          {meta.text}
+        </span>
       </div>
       <button
         type="button"
