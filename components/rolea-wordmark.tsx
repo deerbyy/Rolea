@@ -4,7 +4,7 @@ export function RoleaWordmark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2.5 font-serif text-3xl font-semibold tracking-tight leading-none text-fg",
+        "inline-flex items-center font-serif text-3xl font-semibold tracking-tight leading-none text-fg",
         className,
       )}
       aria-label="Rolea"
@@ -14,9 +14,9 @@ export function RoleaWordmark({ className }: { className?: string }) {
         src="/icon.svg"
         alt=""
         aria-hidden="true"
-        className="h-[1.2em] w-[1.2em] shrink-0 rounded-[0.32em]"
+        className="mr-[0.06em] h-[1em] w-[1em] shrink-0 rounded-[0.22em] -translate-y-[0.04em]"
       />
-      <span>Rolea</span>
+      <span>olea</span>
     </span>
   );
 }
