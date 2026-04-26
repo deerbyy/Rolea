@@ -361,15 +361,19 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     }
   }
 
-  // Group consecutive results by category for nicer reading.
+  // Group results by category (preserve first-appearance order, dedupe across
+  // the whole list so a category never appears twice in the palette).
   const grouped: Array<{ category: string; entries: Array<{ result: Scored; index: number }> }> =
     [];
+  const groupByCategory = new Map<string, { category: string; entries: Array<{ result: Scored; index: number }> }>();
   results.forEach((result, index) => {
-    const last = grouped[grouped.length - 1];
-    if (last && last.category === result.item.category) {
-      last.entries.push({ result, index });
+    const existing = groupByCategory.get(result.item.category);
+    if (existing) {
+      existing.entries.push({ result, index });
     } else {
-      grouped.push({ category: result.item.category, entries: [{ result, index }] });
+      const group = { category: result.item.category, entries: [{ result, index }] };
+      groupByCategory.set(result.item.category, group);
+      grouped.push(group);
     }
   });
 
