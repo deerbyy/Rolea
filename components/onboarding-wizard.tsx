@@ -624,26 +624,26 @@ function CharacterPreview({ text }: { text: string }) {
     ? description.length > 200
       ? `${description.slice(0, 200)}…`
       : description
-    : "Здесь появится описание — допиши через «—», «:» или с новой строки.";
+    : "Отдели имя от описания через «—», «:» или новую строку.";
 
   return (
-    <div className="glass relative flex h-full flex-col overflow-hidden rounded-3xl border border-line/15 p-5">
+    <div className="glass relative flex h-full flex-col overflow-hidden rounded-3xl border border-line/15 p-4">
       <div className="ambient-grid opacity-15" />
       <p className="relative text-[10px] uppercase tracking-[0.22em] text-accent-ring/85">
         Превью персонажа
       </p>
-      <div className="relative mt-3 flex items-center gap-3">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-accent via-fuchsia-500 to-ember text-lg font-semibold text-accent-fg">
+      <div className="relative mt-2 flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-accent via-fuchsia-500 to-ember text-base font-semibold text-accent-fg">
           {initial}
         </div>
         <div className="min-w-0">
-          <p className="truncate font-serif text-lg leading-tight">{name}</p>
+          <p className="truncate font-serif text-base leading-tight">{name}</p>
           <p className="text-[11px] text-subtle">появится в этой истории</p>
         </div>
       </div>
       <p
         className={cn(
-          "relative mt-3 text-sm leading-6",
+          "relative mt-2 flex-1 min-h-0 overflow-hidden text-xs leading-5",
           description ? "text-muted" : "text-subtle italic"
         )}
       >
