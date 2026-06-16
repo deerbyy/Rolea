@@ -27,46 +27,75 @@ function extractGeminiText(payload: GeminiResponse) {
   );
 }
 
+const GEMINI_TIMEOUT_MS = 20_000;
+
 async function callGemini(prompt: string) {
   if (!env.geminiApiKey) {
     return null;
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${env.geminiModel}:generateContent?key=${env.geminiApiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.85,
-          topP: 0.92,
-          maxOutputTokens: 900
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${env.geminiModel}:generateContent?key=${env.geminiApiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
         },
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
-        ]
-      }),
-      cache: "no-store"
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.85,
+            topP: 0.92,
+            maxOutputTokens: 900
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+          ]
+        }),
+        cache: "no-store",
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini request failed: ${response.status}`);
     }
-  );
 
-  if (!response.ok) {
-    throw new Error(`Gemini request failed: ${response.status}`);
+    return extractGeminiText((await response.json()) as GeminiResponse);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return null;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
+}
 
-  return extractGeminiText((await response.json()) as GeminiResponse);
+function safeParseJson<T>(text: string): T | null {
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    return null;
+  }
 }
 
 function fallbackScene(draft: OnboardingDraft): AiSceneResponse {
@@ -112,12 +141,13 @@ export async function generateScene(draft: OnboardingDraft): Promise<AiSceneResp
     return fallbackScene(draft);
   }
 
-  try {
-    return JSON.parse(text.replace(/^```json|```$/g, "").trim()) as AiSceneResponse;
-  } catch {
-    const fallback = fallbackScene(draft);
-    return { ...fallback, openingScene: text };
+  const parsed = safeParseJson<AiSceneResponse>(text);
+  if (parsed) {
+    return parsed;
   }
+
+  const fallback = fallbackScene(draft);
+  return { ...fallback, openingScene: text };
 }
 
 export async function continueStory(messages: ChatMessage[], action: string) {
@@ -134,30 +164,35 @@ export async function continueStory(messages: ChatMessage[], action: string) {
     return fallbackReply(action);
   }
 
-  try {
-    return JSON.parse(text.replace(/^```json|```$/g, "").trim()) as ReturnType<typeof fallbackReply>;
-  } catch {
-    const fallback = fallbackReply(action);
-    return { ...fallback, narration: text };
+  const parsed = safeParseJson<ReturnType<typeof fallbackReply>>(text);
+  if (parsed) {
+    return parsed;
   }
+
+  const fallback = fallbackReply(action);
+  return { ...fallback, narration: text };
 }
+
+export type AssistField = "world" | "protagonist" | "userRole" | "genre" | "format";
 
 export async function assistStoryField({
   field,
   currentValue,
   draft
 }: {
-  field: "world" | "protagonist" | "userRole";
+  field: AssistField;
   currentValue: string;
   draft: OnboardingDraft;
 }) {
-  const labels = {
+  const labels: Record<AssistField, string> = {
     world: "мир или локацию истории",
     protagonist: "ключевого персонажа истории",
-    userRole: "роль пользователя в истории"
+    userRole: "роль пользователя в истории",
+    genre: "жанр или микс жанров истории",
+    format: "формат подачи истории"
   };
 
-  const fallback = {
+  const fallback: Record<AssistField, string> = {
     world:
       currentValue.trim().length > 20
         ? `${currentValue.trim()}\n\nAI-дополнение: добавь одно правило мира, одну опасную локацию и одну тайну, которую персонажи пока не понимают. Мир должен работать только внутри этой истории и не переноситься в другие сюжеты.`
@@ -169,7 +204,23 @@ export async function assistStoryField({
     userRole:
       currentValue.trim().length > 20
         ? `${currentValue.trim()}\n\nAI-дополнение: опиши сильную сторону героя, внутренний конфликт и первое решение, которое сразу повлияет на сцену.`
-        : "Пользователь играет героя, который слышит слова старых книг. Его сила — замечать скрытые смыслы, а слабость — страх выбрать роль, из которой нельзя выйти."
+        : "Пользователь играет героя, который слышит слова старых книг. Его сила — замечать скрытые смыслы, а слабость — страх выбрать роль, из которой нельзя выйти.",
+    genre: currentValue.trim()
+      ? `${currentValue.trim()}, готическая мистика, медленный психологический хоррор`
+      : "Тёмное фэнтези с готическим хоррором и нотками детектива — туман, библиотеки, древние ритуалы",
+    format: currentValue.trim()
+      ? `${currentValue.trim()} с короткими главами, дневниковыми вставками и нелинейными воспоминаниями`
+      : "Атмосферная глава-квест: 3-5 сцен на сессию, акцент на диалогах и решениях, между главами — короткие письма и записи в дневник героя"
+  };
+
+  const constraints: Record<AssistField, string> = {
+    world: "Верни только улучшенный текст без markdown. 4-7 предложений.",
+    protagonist: "Верни только улучшенный текст без markdown. 4-7 предложений.",
+    userRole: "Верни только улучшенный текст без markdown. 4-7 предложений.",
+    genre:
+      "Верни ТОЛЬКО короткую строку (1-2 строки) — название жанра или микс из 2-4 жанров через запятую/плюс, без пояснений и markdown.",
+    format:
+      "Верни ТОЛЬКО короткую строку (1-2 строки) — название формата с уточнением ритма/структуры, без markdown."
   };
 
   const prompt = [
@@ -178,7 +229,8 @@ export async function assistStoryField({
     `Жанр: ${draft.genre}`,
     `Формат: ${draft.format}`,
     `Текущий текст пользователя: ${currentValue || "пусто"}`,
-    "Верни только улучшенный текст без markdown. Не делай его слишком длинным: 4-7 предложений. Важно: персонажи и мир относятся только к одной конкретной истории."
+    constraints[field],
+    "Важно: персонажи и мир относятся только к одной конкретной истории."
   ].join("\n");
 
   const text = await callGemini(prompt);

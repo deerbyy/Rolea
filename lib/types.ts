@@ -66,6 +66,7 @@ export type ChatMessage = {
   author: string;
   content: string;
   timestamp: string;
+  suggestions?: string[];
 };
 
 export type OnboardingDraft = {

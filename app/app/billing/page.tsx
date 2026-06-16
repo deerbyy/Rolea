@@ -1,35 +1,47 @@
 import { Check, CreditCard, Sparkles, Zap } from "lucide-react";
+import { PageContainer } from "@/components/ui/page-container";
 import { SoonButton } from "@/components/soon-button";
 
 const plans = [
   {
     name: "Free",
     price: "0 ₽",
-    accent: "bg-white/[0.04]",
+    badge: null,
+    accent: "bg-surface-2/40",
     features: ["20 AI-сцен в месяц", "3 активные истории", "Базовая память сцены"]
   },
   {
     name: "Creator",
     price: "399 ₽",
-    accent: "bg-violet-500/18",
-    features: ["300 AI-сцен в месяц", "Неограниченные черновики", "Расширенная память персонажей"]
+    badge: "Лучший старт",
+    accent: "bg-accent/18",
+    features: [
+      "300 AI-сцен в месяц",
+      "Неограниченные черновики",
+      "Расширенная память персонажей"
+    ]
   },
   {
     name: "Pro",
     price: "799 ₽",
-    accent: "bg-amber-300/12",
-    features: ["1000 AI-сцен в месяц", "Приоритетные генерации", "Публичные шаблоны и расширенный лор"]
+    badge: null,
+    accent: "bg-ember/15",
+    features: [
+      "1000 AI-сцен в месяц",
+      "Приоритетные генерации",
+      "Публичные шаблоны и расширенный лор"
+    ]
   }
 ];
 
 export default function BillingPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+    <PageContainer>
       <header className="reveal-up mb-8">
-        <p className="text-sm uppercase tracking-[0.18em] text-violet-200">Подписка</p>
-        <h1 className="mt-3 font-serif text-5xl font-semibold md:text-6xl">Тарифы Rolea</h1>
-        <p className="mt-4 max-w-2xl text-white/62">
-          Stripe уже заложен в архитектуру, а кнопки оплаты сейчас показывают понятное `Soon`-состояние.
+        <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-gradient-to-r from-accent/15 via-fuchsia-500/12 to-ember/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-fg"><span className="h-1.5 w-1.5 rounded-full bg-gradient-to-br from-accent to-ember" />Подписка</span>
+        <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">Тарифы Rolea</h1>
+        <p className="mt-4 max-w-2xl text-muted">
+          Stripe уже заложен в архитектуру, а кнопки оплаты сейчас показывают понятное Soon-состояние.
         </p>
       </header>
 
@@ -40,17 +52,19 @@ export default function BillingPage() {
             className={`glass hover-lift reveal-up rounded-3xl p-6 ${plan.accent} reveal-delay-${Math.min(index + 1, 3)}`}
           >
             <div className="flex items-center justify-between">
-              <h2 className="font-serif text-4xl">{plan.name}</h2>
-              {plan.name === "Creator" && (
-                <span className="rounded-full bg-violet-500/30 px-3 py-1 text-xs text-violet-100">Лучший старт</span>
+              <h2 className="font-serif text-3xl md:text-4xl">{plan.name}</h2>
+              {plan.badge && (
+                <span className="rounded-full bg-accent/30 px-3 py-1 text-xs text-accent-ring">
+                  {plan.badge}
+                </span>
               )}
             </div>
-            <p className="mt-5 font-serif text-5xl">{plan.price}</p>
-            <p className="mt-1 text-sm text-white/45">в месяц</p>
+            <p className="mt-5 font-serif text-4xl md:text-5xl">{plan.price}</p>
+            <p className="mt-1 text-sm text-subtle">в месяц</p>
             <div className="mt-6 space-y-3">
               {plan.features.map((feature) => (
-                <p key={feature} className="flex items-center gap-3 text-sm text-white/68">
-                  <Check className="text-violet-300" size={17} /> {feature}
+                <p key={feature} className="flex items-center gap-3 text-sm text-muted">
+                  <Check className="text-accent-ring" size={17} /> {feature}
                 </p>
               ))}
             </div>
@@ -63,21 +77,21 @@ export default function BillingPage() {
 
       <section className="mt-8 grid gap-4 md:grid-cols-3">
         <div className="glass hover-lift rounded-2xl p-5">
-          <Zap className="icon-breathe text-violet-300" />
+          <Zap className="icon-breathe text-accent-ring" />
           <p className="mt-4 font-serif text-3xl">64%</p>
-          <p className="mt-1 text-sm text-white/58">использовано лимита demo-истории</p>
+          <p className="mt-1 text-sm text-muted">использовано лимита demo-истории</p>
         </div>
         <div className="glass hover-lift rounded-2xl p-5">
-          <Sparkles className="icon-breathe text-violet-300" />
+          <Sparkles className="icon-breathe text-accent-ring" />
           <p className="mt-4 font-serif text-3xl">Gemini Flash</p>
-          <p className="mt-1 text-sm text-white/58">модель берется из `GEMINI_MODEL`</p>
+          <p className="mt-1 text-sm text-muted">модель берётся из GEMINI_MODEL</p>
         </div>
         <div className="glass hover-lift rounded-2xl p-5">
-          <CreditCard className="icon-breathe text-violet-300" />
+          <CreditCard className="icon-breathe text-accent-ring" />
           <p className="mt-4 font-serif text-3xl">Stripe</p>
-          <p className="mt-1 text-sm text-white/58">webhook готов для будущей оплаты</p>
+          <p className="mt-1 text-sm text-muted">webhook готов для будущей оплаты</p>
         </div>
       </section>
-    </div>
+    </PageContainer>
   );
 }

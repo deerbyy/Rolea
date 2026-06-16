@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { setStoryVisibility } from "@/lib/repo/stories";
 
 type PublishBody = {
   storyId: string;
@@ -8,32 +8,20 @@ type PublishBody = {
 
 export async function POST(request: Request) {
   const { storyId, publish } = (await request.json()) as PublishBody;
-  const supabase = createSupabaseAdminClient();
 
   if (!storyId) {
     return NextResponse.json({ error: "storyId is required" }, { status: 400 });
   }
 
-  if (!supabase) {
-    return NextResponse.json({
-      storyId,
-      visibility: publish ? "public" : "private",
-      mode: "demo"
-    });
+  const result = await setStoryVisibility(storyId, publish);
+
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 500 });
   }
 
-  const { error } = await supabase
-    .from("stories")
-    .update({
-      visibility: publish ? "public" : "private",
-      status: publish ? "published" : "active",
-      published_at: publish ? new Date().toISOString() : null
-    })
-    .eq("id", storyId);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ storyId, visibility: publish ? "public" : "private" });
+  return NextResponse.json({
+    storyId,
+    visibility: publish ? "public" : "private",
+    mode: result.demo ? "demo" : "live"
+  });
 }
